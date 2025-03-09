@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Pendaftaran awal Page</h1>
+
+    <h5>Semoga bisaaaaa</h5>
+
+    <table>
+        <tr>
+            <th>mahasiswa</th>
+            <th>semester</th>
+            <th>jumlah_semester</th>
+            <th>sks_diambil</th>
+            <th>program_mbkm</th>
+            <th>estimasi_sks_konversi</th>
+            <th>tanggal_persetujuan</th>
+            <th>persetujuan_pa</th>
+            <th>request_status_merdeka</th>
+            <th>rencana_lulus_semester_ini</th>
+            <th>pernyataan_komitmen</th>
+        </tr>
+    
+        {% comment %} Berikut cara memperlihatkan data produk di bawah baris ini {% endcomment %}
+    
+        <!-- {% for daftar in list_daftar %}
+            <tr>
+                <td>{{daftar.mahasiswa}}</td>
+                <td>{{daftar.semester}}</td>
+                <td>{{daftar.jumlah_semester}}</td>
+                <td>{{daftar.sks_diambil}}</td>
+                <td>{{daftar.program_mbkm}}</td>
+                <td>{{daftar.estimasi_sks_konversi}}</td>
+                <td>{{daftar.tanggal_persetujuan}}</td>
+                <td>{{daftar.persetujuan_pa}}</td>
+                <td>{{daftar.request_status_merdeka}}</td>
+                <td>{{daftar.rencana_lulus_semester_ini}}</td>
+                <td>{{daftar.pernyataan_komitmen}}</td>
+            </tr>
+        {% endfor %} -->
+    </table>
+    
+    <br />
+    
+    <a href="{% url 'TryMBKM:daftar_mbkm' %}">
+        <button>
+            Buat Pendaftaran Baru
+        </button>
+    </a>
+    
+{% endblock content %}

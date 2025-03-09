@@ -47,12 +47,18 @@ def validate_sks_diambil(value):
         raise ValidationError(_("SKS yang diambil tidak boleh negatif."))
     
 def validate_estimasi_sks_konversi(instance):
+    if not hasattr(instance, 'program_mbkm') or instance.program_mbkm is None:
+        raise ValidationError("Program MBKM harus dipilih.")
+    
     if instance.estimasi_sks_konversi is None:
-        return # Skip validation if estimasi_sks_konversi is None
+        return  # Skip validation if estimasi_sks_konversi is None
     
     min_sks = instance.program_mbkm.minimum_sks
     max_sks = instance.program_mbkm.maksimum_sks
     if not (min_sks <= instance.estimasi_sks_konversi <= max_sks):
-        raise ValidationError(_(f"Estimasi SKS konversi untuk program {instance.program_mbkm.nama} harus antara {min_sks} dan {max_sks}."))
-    if instance.estimasi_sks_konversi + instance.sks_diambil > 24:
-        raise ValidationError(_("Total SKS (sks_diambil + estimasi_sks_konversi) tidak boleh lebih dari 24."))
+        raise ValidationError(
+            f"Estimasi SKS konversi untuk program {instance.program_mbkm.nama} harus antara {min_sks} dan {max_sks}."
+        )
+    
+    if instance.sks_diambil is not None and instance.estimasi_sks_konversi + instance.sks_diambil > 24:
+        raise ValidationError("Total SKS (sks_diambil + estimasi_sks_konversi) tidak boleh lebih dari 24.")
