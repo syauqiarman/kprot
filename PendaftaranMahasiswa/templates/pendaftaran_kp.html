@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Pendaftaran KP</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        label, input, select, button {
+            display: block;
+            margin: 10px 0;
+        }
+        input[readonly], select[disabled] {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <h2>Pendaftaran Kerja Praktik</h2>
+    
+    <form>
+        <label for="nama">Nama:</label>
+        <input type="text" id="nama" name="nama" required>
+
+        <label for="npm">NPM:</label>
+        <input type="text" id="npm" name="npm" required>
+
+        <label for="sks_lulus">SKS Lulus:</label>
+        <input type="number" id="sks_lulus" name="sks_lulus" value="110" readonly>
+        
+        <label for="semester">Semester:</label>
+        <input type="number" id="semester" name="semester" value="6" readonly>
+        
+        <label for="penyelia">Penyelia:</label>
+        <input type="text" id="penyelia" name="penyelia" required>
+        
+        <label for="role">Peran:</label>
+        <input type="text" id="role" name="role" required>
+        
+        <label for="total_jam_kerja">Total Jam Kerja:</label>
+        <input type="number" id="total_jam_kerja" name="total_jam_kerja" required>
+        
+        <label for="tanggal_mulai">Tanggal Mulai:</label>
+        <input type="date" id="tanggal_mulai" name="tanggal_mulai" required>
+        
+        <label for="tanggal_selesai">Tanggal Selesai:</label>
+        <input type="date" id="tanggal_selesai" name="tanggal_selesai" required>
+        
+        <label>
+            <input type="checkbox" name="pernyataan_komitmen" required>
+            Saya menyatakan komitmen untuk menyelesaikan KP.
+        </label>
+        
+        <button type="submit">Daftar</button>
+    </form>
+</body>
+</html>
