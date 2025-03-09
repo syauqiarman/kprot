@@ -1,18 +1,17 @@
 from django.test import TestCase
 from PendaftaranMahasiswa.forms import PendaftaranMBKMForm
-from PendaftaranMahasiswa.models import ProgramMBKM, Mahasiswa, Penyelia, Semester
-from django.contrib.auth import get_user_model
-import datetime
-
-CustomUser = get_user_model()
+from PendaftaranMahasiswa.models import ProgramMBKM, Mahasiswa, Penyelia, Semester, User
+from datetime import date
 
 class PendaftaranMBKMFormTest(TestCase):
     def setUp(self):
-        self.user = CustomUser.objects.create_user(username="testuser", password="password", email="test@example.com")
-        self.semester = Semester.objects.create(semester="Gasal 2024", aktif=True, gasal_genap="Gasal")
-        self.mahasiswa = Mahasiswa.objects.create(user=self.user, nama="Test Mahasiswa", npm="123456789")
-        self.penyelia = Penyelia.objects.create(nama="Dosen PA", email="dosenpa@example.com", perusahaan="Universitas A")
-        self.program = ProgramMBKM.objects.create(nama="Magang", minimum_sks=10, maksimum_sks=20)
+        self.user = User.objects.create_user(username="testuser", password="password")
+        self.mahasiswa = Mahasiswa.objects.create(user=self.user, nama="Arthur", email="test1@example.com", npm="123456789")
+        self.user2 = User.objects.create_user(username="testuser2", password="password2")
+        self.penyelia = Penyelia.objects.create(user=self.user, nama="Agus", perusahaan="ABC", email="penyelia@company.com")
+        self.semester = Semester.objects.create(nama="Gasal 24/25", gasal_genap="Gasal", tahun=2024, aktif=True)
+        self.semester_genap = Semester.objects.create(nama="Genap 24/25", gasal_genap="Genap", tahun=2025, aktif=True)
+        self.program = ProgramMBKM.objects.create(nama="Magang Mandiri", minimum_sks=10, maksimum_sks=20)
 
     def test_form_valid(self):
         """ Test valid form submission """
@@ -21,11 +20,14 @@ class PendaftaranMBKMFormTest(TestCase):
             "semester": self.semester.id,
             "jumlah_semester": 5,
             "sks_diambil": 18,
+            "request_status_merdeka": False,
+            "rencana_lulus_semester_ini": False,
             "program_mbkm": self.program.id,
             "penyelia": self.penyelia.id,
             "role": "Mahasiswa",
             "estimasi_sks_konversi": 15,
-            "tanggal_mulai": datetime.date.today(),
+            "tanggal_mulai": date(2025, 1, 1),
+            "tanggal_selesai": date(2025, 6, 1),
             "pernyataan_komitmen": True,
             "status_pendaftaran": "Menunggu Persetujuan",
             "jenis_magang": ["studi_independent"],
@@ -38,16 +40,19 @@ class PendaftaranMBKMFormTest(TestCase):
         data = {
             "mahasiswa": self.mahasiswa.id,
             "semester": self.semester.id,
-            "jumlah_semester": 3,  # Semester kurang dari 5
+            "jumlah_semester": 3,
             "sks_diambil": 18,
+            "request_status_merdeka": False,
+            "rencana_lulus_semester_ini": False,
             "program_mbkm": self.program.id,
             "penyelia": self.penyelia.id,
             "role": "Mahasiswa",
             "estimasi_sks_konversi": 15,
-            "tanggal_mulai": datetime.date.today(),
+            "tanggal_mulai": date(2025, 1, 1),
+            "tanggal_selesai": date(2025, 6, 1),
             "pernyataan_komitmen": True,
             "status_pendaftaran": "Menunggu Persetujuan",
-            "jenis_magang": ["magang_mitra"],
+            "jenis_magang": ["studi_independent"],
         }
         form = PendaftaranMBKMForm(data)
         self.assertFalse(form.is_valid())
@@ -58,16 +63,19 @@ class PendaftaranMBKMFormTest(TestCase):
         data = {
             "mahasiswa": self.mahasiswa.id,
             "semester": self.semester.id,
-            "jumlah_semester": 6,
+            "jumlah_semester": 5,
             "sks_diambil": 18,
+            "request_status_merdeka": False,
+            "rencana_lulus_semester_ini": False,
             "program_mbkm": self.program.id,
             "penyelia": self.penyelia.id,
             "role": "Mahasiswa",
-            "estimasi_sks_konversi": 25,  # Melebihi maksimum 20 SKS
-            "tanggal_mulai": datetime.date.today(),
+            "estimasi_sks_konversi": 25,
+            "tanggal_mulai": date(2025, 1, 1),
+            "tanggal_selesai": date(2025, 6, 1),
             "pernyataan_komitmen": True,
             "status_pendaftaran": "Menunggu Persetujuan",
-            "jenis_magang": ["magang_mandiri"],
+            "jenis_magang": ["studi_independent"],
         }
         form = PendaftaranMBKMForm(data)
         self.assertFalse(form.is_valid())
@@ -80,12 +88,15 @@ class PendaftaranMBKMFormTest(TestCase):
             "semester": self.semester.id,
             "jumlah_semester": 5,
             "sks_diambil": 18,
+            "request_status_merdeka": False,
+            "rencana_lulus_semester_ini": False,
             "program_mbkm": self.program.id,
             "penyelia": self.penyelia.id,
             "role": "Mahasiswa",
             "estimasi_sks_konversi": 15,
-            "tanggal_mulai": datetime.date.today(),
-            "pernyataan_komitmen": False,  # Komitmen tidak disetujui
+            "tanggal_mulai": date(2025, 1, 1),
+            "tanggal_selesai": date(2025, 6, 1),
+            "pernyataan_komitmen": False,
             "status_pendaftaran": "Menunggu Persetujuan",
             "jenis_magang": ["studi_independent"],
         }
@@ -109,13 +120,16 @@ class PendaftaranMBKMFormTest(TestCase):
         data = {
             "mahasiswa": self.mahasiswa.id,
             "semester": self.semester.id,
-            "jumlah_semester": 6,
+            "jumlah_semester": 5,
             "sks_diambil": 18,
+            "request_status_merdeka": False,
+            "rencana_lulus_semester_ini": False,
             "program_mbkm": self.program.id,
             "penyelia": self.penyelia.id,
             "role": "Mahasiswa",
             "estimasi_sks_konversi": 15,
-            "tanggal_mulai": datetime.date.today(),
+            "tanggal_mulai": date(2025, 1, 1),
+            "tanggal_selesai": date(2025, 6, 1),
             "pernyataan_komitmen": True,
             "status_pendaftaran": "Menunggu Persetujuan",
             "jenis_magang": [],
@@ -127,18 +141,21 @@ class PendaftaranMBKMFormTest(TestCase):
     def test_invalid_mahasiswa_not_exist(self):
         """ Test jika mahasiswa tidak ada dalam sistem """
         data = {
-            "mahasiswa": 9999,  # ID Mahasiswa tidak ada
+            "mahasiswa": 9999,
             "semester": self.semester.id,
-            "jumlah_semester": 6,
+            "jumlah_semester": 5,
             "sks_diambil": 18,
+            "request_status_merdeka": False,
+            "rencana_lulus_semester_ini": False,
             "program_mbkm": self.program.id,
             "penyelia": self.penyelia.id,
             "role": "Mahasiswa",
             "estimasi_sks_konversi": 15,
-            "tanggal_mulai": datetime.date.today(),
+            "tanggal_mulai": date(2025, 1, 1),
+            "tanggal_selesai": date(2025, 6, 1),
             "pernyataan_komitmen": True,
             "status_pendaftaran": "Menunggu Persetujuan",
-            "jenis_magang": ["magang_mandiri"],
+            "jenis_magang": ["studi_independent"],
         }
         form = PendaftaranMBKMForm(data)
         self.assertFalse(form.is_valid())
@@ -149,16 +166,19 @@ class PendaftaranMBKMFormTest(TestCase):
         data = {
             "mahasiswa": self.mahasiswa.id,
             "semester": self.semester.id,
-            "jumlah_semester": 6,
+            "jumlah_semester": 5,
             "sks_diambil": 18,
+            "request_status_merdeka": False,
+            "rencana_lulus_semester_ini": False,
             "program_mbkm": self.program.id,
             "penyelia": self.penyelia.id,
             "role": "Mahasiswa",
-            "estimasi_sks_konversi": -5,  # Nilai negatif
-            "tanggal_mulai": datetime.date.today(),
+            "estimasi_sks_konversi": -5,
+            "tanggal_mulai": date(2025, 1, 1),
+            "tanggal_selesai": date(2025, 6, 1),
             "pernyataan_komitmen": True,
             "status_pendaftaran": "Menunggu Persetujuan",
-            "jenis_magang": ["magang_mandiri"],
+            "jenis_magang": ["studi_independent"],
         }
         form = PendaftaranMBKMForm(data)
         self.assertFalse(form.is_valid())
