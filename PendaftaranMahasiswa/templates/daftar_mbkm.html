@@ -41,12 +41,13 @@
             {{ form.email }}
         </div>
 
-        <!-- Form Pendaftaran -->
+        <!-- Informasi Semester Aktif -->
         <div class="form-group">
-            <label for="id_semester">Semester:</label>
-            {{ form.semester }}
-            {{ form.semester.errors }}
+            <label>Semester Aktif:</label>
+            {{ form.semester }}  <!-- Field semester disembunyikan -->
         </div>
+
+        <!-- Form Pendaftaran -->
         <div class="form-group">
             <label for="id_jumlah_semester">Jumlah Semester yang Telah Ditempuh:</label>
             {{ form.jumlah_semester }}

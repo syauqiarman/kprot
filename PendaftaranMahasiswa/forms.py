@@ -44,13 +44,15 @@ class PendaftaranMBKMForm(forms.ModelForm):
             self.fields['npm'].initial = mahasiswa.npm
             self.fields['email'].initial = mahasiswa.email
         
+        # Set nilai default untuk semester (semester yang aktif)
+        semester_aktif = Semester.objects.filter(aktif=True).first()
+        if semester_aktif:
+            self.fields['semester'].initial = semester_aktif
+            self.fields['semester'].disabled = True  # Nonaktifkan field
+
         # Konfigurasi pilihan program MBKM
         self.fields['program_mbkm'].queryset = ProgramMBKM.objects.all()
         self.fields['program_mbkm'].empty_label = "Pilih Program MBKM"  # Tambahkan placeholder
-
-        # Konfigurasi pilihan semester
-        self.fields['semester'].queryset = Semester.objects.all()
-        self.fields['semester'].empty_label = "Pilih Semester"  # Tambahkan placeholder
 
     def clean_persetujuan_pa(self):
         file = self.cleaned_data.get('persetujuan_pa')
