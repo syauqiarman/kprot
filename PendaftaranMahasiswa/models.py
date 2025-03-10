@@ -138,10 +138,6 @@ class PendaftaranMBKM(models.Model):
         super().__init__(*args, **kwargs)
         self.request_status_merdeka = self.sks_diambil == 0
         if not self.pk:
-            if self.persetujuan_pa:
-                self.status_pendaftaran = "Menunggu Verifikasi Dosen"
-            else:
-                self.status_pendaftaran = "Menunggu Persetujuan PA"
             self.history = [datetime.now().isoformat()]
 
     def clean(self):
@@ -151,6 +147,10 @@ class PendaftaranMBKM(models.Model):
         validate_jika_terdaftar(self)
 
     def save(self, *args, **kwargs):
+        if self.persetujuan_pa:
+            self.status_pendaftaran = "Menunggu Verifikasi Dosen"
+        else:
+            self.status_pendaftaran = "Menunggu Persetujuan PA"
         self.full_clean()
         super().save(*args, **kwargs)
 

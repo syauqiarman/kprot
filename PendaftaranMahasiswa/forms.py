@@ -13,7 +13,7 @@ class PendaftaranMBKMForm(forms.ModelForm):
             'nama', 'npm', 'email',
             'semester', 'jumlah_semester', 'sks_diambil', 'program_mbkm',
             'estimasi_sks_konversi', 'rencana_lulus_semester_ini',
-            'persetujuan_pa'
+            'persetujuan_pa', 'tanggal_persetujuan', 'pernyataan_komitmen'
         ]
         labels = {
             'jumlah_semester': 'Jumlah Semester yang Telah Ditempuh',
@@ -21,22 +21,28 @@ class PendaftaranMBKMForm(forms.ModelForm):
             'program_mbkm': 'Program MBKM',
             'estimasi_sks_konversi': 'Estimasi SKS Konversi',
             'rencana_lulus_semester_ini': 'Rencana Lulus Semester Ini',
-            'persetujuan_pa': 'Upload Persetujuan PA (PDF)'
+            'persetujuan_pa': 'Upload Persetujuan PA (PDF)',
+            'tanggal_persetujuan': 'Cantumkan Tanggal PA saat Menyetujui Pendaftaran',
+            'pernyataan_komitmen': 'Saya menyetujui pernyataan komitmen',
         }
         widgets = {
             'persetujuan_pa': forms.ClearableFileInput(attrs={'accept': 'application/pdf'}),
+            'tanggal_persetujuan': forms.DateInput(attrs={'type': 'date'}),
+            'pernyataan_komitmen': forms.CheckboxInput(),
         }
 
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        if user and hasattr(user, 'mahasiswa'):
-            mahasiswa = user.mahasiswa
+        # Ambil data mahasiswa dari user yang sedang login
+        if self.user and hasattr(self.user, 'mahasiswa'):
+            mahasiswa = self.user.mahasiswa
             self.fields['nama'].initial = mahasiswa.nama
             self.fields['npm'].initial = mahasiswa.npm
             self.fields['email'].initial = mahasiswa.email
         
+        # Konfigurasi pilihan program MBKM
         self.fields['program_mbkm'].queryset = ProgramMBKM.objects.all()
         self.fields['program_mbkm'].empty_label = None
 
@@ -52,7 +58,22 @@ class PendaftaranMBKMForm(forms.ModelForm):
         sks_diambil = cleaned_data.get('sks_diambil', 0)
         estimasi_sks_konversi = cleaned_data.get('estimasi_sks_konversi', 0)
         program_mbkm = cleaned_data.get('program_mbkm')
+        pernyataan_komitmen = cleaned_data.get('pernyataan_komitmen')
+        persetujuan_pa = cleaned_data.get('persetujuan_pa')
+        tanggal_persetujuan = cleaned_data.get('tanggal_persetujuan')
 
+        # Validasi: Jika ada file persetujuan PA, tanggal_persetujuan harus diisi
+        if persetujuan_pa and not tanggal_persetujuan:
+            raise ValidationError({
+                'tanggal_persetujuan': "Tanggal persetujuan harus diisi jika file persetujuan PA diupload."
+            })
+
+        # Validasi pernyataan komitmen
+        if not pernyataan_komitmen:
+            raise ValidationError({
+                'pernyataan_komitmen': "Anda harus menyetujui pernyataan komitmen."
+            })
+        
         # Validasi jumlah semester
         if jumlah_semester and jumlah_semester < 5:
             raise ValidationError({

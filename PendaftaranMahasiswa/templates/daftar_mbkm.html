@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pendaftaran MBKM</title>
+    <style>
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .errorlist {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Form Pendaftaran MBKM</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <!-- Biodata Mahasiswa -->
+        <div class="form-group">
+            <label for="id_nama">Nama:</label>
+            {{ form.nama }}
+        </div>
+        <div class="form-group">
+            <label for="id_npm">NPM:</label>
+            {{ form.npm }}
+        </div>
+        <div class="form-group">
+            <label for="id_email">Email:</label>
+            {{ form.email }}
+        </div>
+
+        <!-- Form Pendaftaran -->
+        <div class="form-group">
+            <label for="id_semester">Semester:</label>
+            {{ form.semester }}
+        </div>
+        <div class="form-group">
+            <label for="id_jumlah_semester">Jumlah Semester yang Telah Ditempuh:</label>
+            {{ form.jumlah_semester }}
+            {{ form.jumlah_semester.errors }}
+        </div>
+        <div class="form-group">
+            <label for="id_sks_diambil">SKS yang Diambil Semester Ini:</label>
+            {{ form.sks_diambil }}
+            {{ form.sks_diambil.errors }}
+        </div>
+        <div class="form-group">
+            <label for="id_program_mbkm">Program MBKM:</label>
+            {{ form.program_mbkm }}
+            {{ form.program_mbkm.errors }}
+        </div>
+        <div class="form-group">
+            <label for="id_estimasi_sks_konversi">Estimasi SKS Konversi:</label>
+            {{ form.estimasi_sks_konversi }}
+            {{ form.estimasi_sks_konversi.errors }}
+        </div>
+        <div class="form-group">
+            <label for="id_rencana_lulus_semester_ini">Rencana Lulus Semester Ini:</label>
+            {{ form.rencana_lulus_semester_ini }}
+        </div>
+        <div class="form-group">
+            <label for="id_persetujuan_pa">Upload Persetujuan PA (PDF):</label>
+            {{ form.persetujuan_pa }}
+            {{ form.persetujuan_pa.errors }}
+        </div>
+        <div class="form-group">
+            <label for="id_tanggal_persetujuan">Tanggal Persetujuan PA:</label>
+            {{ form.tanggal_persetujuan }}
+            {{ form.tanggal_persetujuan.errors }}
+        </div>
+        <div class="form-group">
+            <label for="id_pernyataan_komitmen">Saya menyetujui pernyataan komitmen:</label>
+            {{ form.pernyataan_komitmen }}
+            {{ form.pernyataan_komitmen.errors }}
+        </div>
+
+        <button type="submit">Daftar</button>
+    </form>
+</body>
+</html>

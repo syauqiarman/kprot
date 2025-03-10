@@ -1,6 +1,7 @@
 from django.urls import path
-from .views import daftar_mbkm
+from . import views
 
 urlpatterns = [
-    path('daftar/', daftar_mbkm, name='daftar_mbkm'),
+    path('daftar/', views.daftar_mbkm, name='daftar_mbkm'),
+    path('daftar/berhasil/<int:pendaftaran_id>/', views.daftar_berhasil, name='daftar_berhasil'),
 ]
