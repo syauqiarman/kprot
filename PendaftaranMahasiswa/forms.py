@@ -108,3 +108,19 @@ class PendaftaranMBKMForm(forms.ModelForm):
                 })
 
         return cleaned_data
+    
+    def save(self, commit=True):
+        # Ambil instance PendaftaranMBKM
+        pendaftaran = super().save(commit=False)
+        
+        # Atur status pendaftaran berdasarkan ada/tidaknya file persetujuan PA
+        if pendaftaran.persetujuan_pa:
+            pendaftaran.status_pendaftaran = "Menunggu Verifikasi Dosen"
+        else:
+            pendaftaran.status_pendaftaran = "Menunggu Persetujuan PA"
+        
+        # Simpan ke database jika commit=True
+        if commit:
+            pendaftaran.save()
+        
+        return pendaftaran

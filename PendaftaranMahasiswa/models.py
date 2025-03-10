@@ -153,10 +153,6 @@ class PendaftaranMBKM(models.Model):
         validate_jika_terdaftar(self)
 
     def save(self, *args, **kwargs):
-        if self.persetujuan_pa:
-            self.status_pendaftaran = "Menunggu Verifikasi Dosen"
-        else:
-            self.status_pendaftaran = "Menunggu Persetujuan PA"
         self.full_clean()
         super().save(*args, **kwargs)
 

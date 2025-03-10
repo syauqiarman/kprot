@@ -1,12 +1,15 @@
 from datetime import date
-from django.test import TestCase
+from django.test import TestCase, RequestFactory
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.models import User
 from .models import Mahasiswa, PendaftaranMBKM, Semester, ProgramMBKM
 from .forms import PendaftaranMBKMForm
+from django.urls import reverse
+from .views import daftar_mbkm, daftar_berhasil
 
-class PendaftaranMBKMFormTest(TestCase):
+class BaseTest(TestCase):
     def setUp(self):
+        # Setup data umum yang digunakan di semua test
         self.user = User.objects.create_user(username="testuser", password="password")
         self.mahasiswa = Mahasiswa.objects.create(
             user=self.user, 
@@ -33,13 +36,14 @@ class PendaftaranMBKMFormTest(TestCase):
         self.valid_data = {
             'semester': self.semester.id,
             'jumlah_semester': 6,
-            'sks_diambil': 10,  # Diubah agar total SKS tidak melebihi 24
+            'sks_diambil': 10,
             'program_mbkm': self.program_mandiri.id,
-            'estimasi_sks_konversi': 10,  # Diubah agar total SKS tidak melebihi 24
+            'estimasi_sks_konversi': 10,
             'rencana_lulus_semester_ini': False,
             'pernyataan_komitmen': True,
         }
 
+class PendaftaranMBKMFormTest(BaseTest):
     # Test case positif
     def test_form_fields_disabled(self):
         form = PendaftaranMBKMForm(user=self.user)
@@ -94,7 +98,7 @@ class PendaftaranMBKMFormTest(TestCase):
         )
 
     def test_missing_required_fields(self):
-        required_fields = ['semester', 'jumlah_semester', 'program_mbkm']
+        required_fields = ['jumlah_semester', 'jumlah_semester', 'program_mbkm']
         for field in required_fields:
             invalid_data = self.valid_data.copy()
             del invalid_data[field]
@@ -341,3 +345,95 @@ class PendaftaranMBKMFormTest(TestCase):
         self.assertEqual(pendaftaran.mahasiswa.nama, self.mahasiswa.nama)
         self.assertEqual(pendaftaran.mahasiswa.npm, self.mahasiswa.npm)
         self.assertEqual(pendaftaran.mahasiswa.email, self.mahasiswa.email)
+
+
+class PendaftaranMBKMViewsTest(BaseTest):
+    def setUp(self):
+        super().setUp()
+        self.factory = RequestFactory()
+        self.valid_data['tanggal_persetujuan'] = date.today()
+
+    # Test positif: Pendaftaran berhasil tanpa file upload
+    def test_daftar_mbkm_success_without_file(self):
+        request = self.factory.post(reverse('daftar_mbkm'), data=self.valid_data)
+        request.user = self.user
+        response = daftar_mbkm(request)
+        self.assertEqual(response.status_code, 302)  # Redirect ke halaman sukses
+        self.assertEqual(PendaftaranMBKM.objects.count(), 1)
+
+    # Test positif: Pendaftaran berhasil dengan file upload
+    def test_daftar_mbkm_success_with_file(self):
+        pdf_file = SimpleUploadedFile("test.pdf", b"file_content", content_type="application/pdf")
+        form_data = self.valid_data.copy()
+        form_data['persetujuan_pa'] = pdf_file
+        
+        request = self.factory.post(reverse('daftar_mbkm'), data=form_data)
+        request.user = self.user
+        response = daftar_mbkm(request)
+        self.assertEqual(response.status_code, 302)  # Redirect ke halaman sukses
+        self.assertEqual(PendaftaranMBKM.objects.count(), 1)
+
+    # Test negatif: Pendaftaran gagal karena data tidak valid
+    def test_daftar_mbkm_failure_invalid_data(self):
+        invalid_data = self.valid_data.copy()
+        invalid_data['jumlah_semester'] = 4  # Jumlah semester tidak valid
+        
+        request = self.factory.post(reverse('daftar_mbkm'), data=invalid_data)
+        request.user = self.user
+        response = daftar_mbkm(request)
+        self.assertEqual(response.status_code, 200)  # Tetap di halaman form
+        self.assertContains(response, "Minimal 5 semester untuk mendaftar program MBKM.")
+
+    # Test positif: Halaman sukses menampilkan data pendaftaran
+    def test_daftar_berhasil_view(self):
+        # Buat data pendaftaran
+        pendaftaran = PendaftaranMBKM.objects.create(
+            mahasiswa=self.mahasiswa,
+            semester=self.semester,
+            jumlah_semester=6,
+            sks_diambil=10,
+            program_mbkm=self.program_mandiri,
+            estimasi_sks_konversi=10,
+            rencana_lulus_semester_ini=False,
+            pernyataan_komitmen=True,
+            status_pendaftaran="Menunggu Persetujuan PA",
+        )
+        
+        request = self.factory.get(reverse('daftar_berhasil', args=[pendaftaran.id]))
+        request.user = self.user
+        response = daftar_berhasil(request, pendaftaran_id=pendaftaran.id)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Pendaftaran Berhasil!")
+        self.assertContains(response, "Menunggu Persetujuan PA")
+
+class TemplateRenderingTest(BaseTest):
+    # Test positif: Template daftar_mbkm menampilkan form dengan benar
+    def test_daftar_mbkm_template(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('daftar_mbkm'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Form Pendaftaran MBKM")
+        self.assertContains(response, "Nama:")
+        self.assertContains(response, "NPM:")
+        self.assertContains(response, "Email:")
+
+    # Test positif: Template daftar_berhasil menampilkan data pendaftaran dengan benar
+    def test_daftar_berhasil_template(self):
+        # Buat data pendaftaran
+        pendaftaran = PendaftaranMBKM.objects.create(
+            mahasiswa=self.mahasiswa,
+            semester=self.semester,
+            jumlah_semester=6,
+            sks_diambil=10,
+            program_mbkm=self.program_mandiri,
+            estimasi_sks_konversi=10,
+            rencana_lulus_semester_ini=False,
+            pernyataan_komitmen=True,
+            status_pendaftaran="Menunggu Persetujuan PA",
+        )
+        
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('daftar_berhasil', args=[pendaftaran.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Pendaftaran Berhasil!")
+        self.assertContains(response, "Menunggu Persetujuan PA")
