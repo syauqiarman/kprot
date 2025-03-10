@@ -1,6 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import PendaftaranMBKM, ProgramMBKM, Mahasiswa
+from .models import PendaftaranMBKM, ProgramMBKM, Mahasiswa, Semester
 
 class PendaftaranMBKMForm(forms.ModelForm):
     nama = forms.CharField(disabled=True, required=False, label="Nama Mahasiswa")
@@ -26,6 +26,8 @@ class PendaftaranMBKMForm(forms.ModelForm):
             'pernyataan_komitmen': 'Saya menyetujui pernyataan komitmen',
         }
         widgets = {
+            'semester': forms.Select(attrs={'class': 'form-control'}),
+            'program_mbkm': forms.Select(attrs={'class': 'form-control'}),
             'persetujuan_pa': forms.ClearableFileInput(attrs={'accept': 'application/pdf'}),
             'tanggal_persetujuan': forms.DateInput(attrs={'type': 'date'}),
             'pernyataan_komitmen': forms.CheckboxInput(),
@@ -44,7 +46,11 @@ class PendaftaranMBKMForm(forms.ModelForm):
         
         # Konfigurasi pilihan program MBKM
         self.fields['program_mbkm'].queryset = ProgramMBKM.objects.all()
-        self.fields['program_mbkm'].empty_label = None
+        self.fields['program_mbkm'].empty_label = "Pilih Program MBKM"  # Tambahkan placeholder
+
+        # Konfigurasi pilihan semester
+        self.fields['semester'].queryset = Semester.objects.all()
+        self.fields['semester'].empty_label = "Pilih Semester"  # Tambahkan placeholder
 
     def clean_persetujuan_pa(self):
         file = self.cleaned_data.get('persetujuan_pa')

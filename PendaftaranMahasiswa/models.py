@@ -67,10 +67,16 @@ class Semester(models.Model):
     tahun = models.IntegerField()
     aktif = models.BooleanField(default=False)
 
+    def __str__(self):
+        return self.nama
+
 class ProgramMBKM(models.Model):
     nama = models.CharField(max_length=255)
     minimum_sks = models.IntegerField()
     maksimum_sks = models.IntegerField()
+
+    def __str__(self):
+        return self.nama
 
 class PendaftaranKP(models.Model):
     mahasiswa = models.ForeignKey(Mahasiswa, on_delete=models.CASCADE)
