@@ -2,14 +2,14 @@ from django.views.generic import UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.urls import reverse_lazy
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .forms import InputDetilKPForm
 from .services import PendaftaranKPService
 from .models import PendaftaranKP, Mahasiswa, User, Penyelia
 from django.conf import settings
 from django.contrib.auth import login
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 
 # Create your views here.
 class InputDetilKPView(LoginRequiredMixin, UpdateView):
@@ -37,43 +37,44 @@ class InputDetilKPView(LoginRequiredMixin, UpdateView):
 
 
 # Function-based view untuk menampilkan form input detil KP
-# @login_required
-def ShowInputDetilFormKP(request):
-    if settings.DEBUG:
-        user, created = User.objects.get_or_create(username='devuser')
-        login(request, user)
+@login_required
+def input_detil_kp_form(request):
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    mahasiswa = get_object_or_404(Mahasiswa, user=request.user)
 
     """Menampilkan form input detil KP dan menangani penyimpanan data."""
     # Cek apakah user memiliki pendaftaran yang masih 'Menunggu Detil'
-    if not PendaftaranKPService.check_has_pending_registration(request.user):
+    if not PendaftaranKPService.check_has_pending_registration(mahasiswa.user):
         return redirect('input_detil:no_pending_registration')
     
     # Ambil data pendaftaran KP yang masih 'Menunggu Detil'
-    pendaftaran_kp = PendaftaranKPService.get_pending_registration(request.user)
+    pendaftaran_kp = PendaftaranKPService.get_pending_registration(mahasiswa.user)
     
     if request.method == 'POST':
         form = InputDetilKPForm(request.POST, instance=pendaftaran_kp)
         if form.is_valid():
-            penyelia_nama = form.cleaned_data.get("penyelia_nama")
-            penyelia_email = form.cleaned_data.get("penyelia_email")
-            penyelia_perusahaan = form.cleaned_data.get("penyelia_perusahaan")
+            # penyelia_nama = form.cleaned_data.get("penyelia_nama")
+            # penyelia_email = form.cleaned_data.get("penyelia_email")
+            # penyelia_perusahaan = form.cleaned_data.get("penyelia_perusahaan")
 
-            # Check if a User with the email exists; create one if not
-            user2, created = User.objects.get_or_create(
-                username=penyelia_email,  # Assuming email as username
-                defaults={"email": penyelia_email}
-            )
+            # # Check if a User with the email exists; create one if not
+            # user2, created = User.objects.get_or_create(
+            #     username=penyelia_email,  # Assuming email as username
+            #     defaults={"email": penyelia_email}
+            # )
 
-            # Check if a Penyelia exists for this user; create if not
-            penyelia, created = Penyelia.objects.get_or_create(
-                user=user2,
-                defaults={"nama": penyelia_nama, "email": penyelia_email, "perusahaan": penyelia_perusahaan}
-            )
+            # # Check if a Penyelia exists for this user; create if not
+            # penyelia, created = Penyelia.objects.get_or_create(
+            #     user=user2,
+            #     defaults={"nama": penyelia_nama, "email": penyelia_email, "perusahaan": penyelia_perusahaan}
+            # )
 
             # Save the form while linking it to the newly created or existing Penyelia
             registration = form.save(commit=False)
-            registration.penyelia = penyelia
-            registration.save()
+            # registration.penyelia = penyelia
+            # registration.save()
             PendaftaranKPService.update_registration_status(registration)
             return redirect('input_detil:success_page')
     else:

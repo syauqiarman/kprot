@@ -82,6 +82,12 @@ class InputDetilKPForm(forms.ModelForm):
         penyelia_perusahaan = self.cleaned_data.get("penyelia_perusahaan")
         penyelia_email = self.cleaned_data.get("penyelia_email")
 
+        # Check if a User with the email exists; create one if not
+        user2, created = User.objects.get_or_create(
+            username=penyelia_email,  # Assuming email as username
+            defaults={"email": penyelia_email}
+        )
+
         if penyelia_nama and penyelia_perusahaan and penyelia_email:
             penyelia, created = Penyelia.objects.get_or_create(
                 nama=penyelia_nama,
