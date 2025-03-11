@@ -1,6 +1,7 @@
 from django import forms
 from .models import PendaftaranKP, Penyelia, Semester, User
 import secrets
+import logging
 
 class InputDetilKPForm(forms.ModelForm):
     class Meta:
@@ -34,12 +35,6 @@ class InputDetilKPForm(forms.ModelForm):
             self.fields['semester'].initial = getattr(self.pendaftaran_kp.semester, "nama", "")
             self.fields['sks_lulus'].initial = getattr(self.pendaftaran_kp, "sks_lulus", 0)
 
-            # Jika ada penyelia, prefill data
-            if self.pendaftaran_kp.penyelia:
-                self.fields['penyelia_nama'].initial = self.pendaftaran_kp.penyelia.nama
-                self.fields['penyelia_perusahaan'].initial = self.pendaftaran_kp.penyelia.perusahaan
-                self.fields['penyelia_email'].initial = self.pendaftaran_kp.penyelia.email
-
     def clean(self):
         cleaned_data = super().clean()
 
@@ -63,7 +58,8 @@ class InputDetilKPForm(forms.ModelForm):
         tanggal_selesai = cleaned_data.get("tanggal_selesai")
 
         if tanggal_mulai and tanggal_selesai and tanggal_mulai > tanggal_selesai:
-            raise forms.ValidationError({"__all__": "Tanggal selesai harus setelah tanggal mulai."})
+            self.add_error("tanggal_selesai", "Tanggal selesai harus setelah tanggal mulai.")
+
 
         return cleaned_data
 
@@ -84,19 +80,23 @@ class InputDetilKPForm(forms.ModelForm):
 
         # Check if a User with the email exists; create one if not
         user2, created = User.objects.get_or_create(
-            username=penyelia_email,  # Assuming email as username
-            defaults={"email": penyelia_email}
+            email = penyelia_email,
+            defaults={"username": penyelia_email}
         )
 
         if penyelia_nama and penyelia_perusahaan and penyelia_email:
             penyelia, created = Penyelia.objects.get_or_create(
+                user= user2,
                 nama=penyelia_nama,
-                defaults={"perusahaan": penyelia_perusahaan, "email": penyelia_email}
+                defaults={"nama": penyelia_nama, "perusahaan": penyelia_perusahaan, "email": penyelia_email}
             )
             if not created:
                 # Jika penyelia sudah ada, pastikan datanya diperbarui
+                penyelia.nama = penyelia_nama
                 penyelia.perusahaan = penyelia_perusahaan
                 penyelia.email = penyelia_email
+                logger = logging.getLogger(__name__)
+                logger.debug(f"User: {user2}, Role Existing: {user2.role if hasattr(user2, 'role') else 'None'}")
                 penyelia.save()
 
             instance.penyelia = penyelia
@@ -105,3 +105,5 @@ class InputDetilKPForm(forms.ModelForm):
             instance.save()
 
         return instance
+
+# class input_detil_kp(forms.Mol)

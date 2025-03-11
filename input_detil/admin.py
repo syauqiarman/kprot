@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Mahasiswa, ProgramMBKM, PendaftaranMBKM, Semester, Penyelia, Dosen, PembimbingAkademik, Kaprodi, ManajemenFakultas
+from .models import Mahasiswa, PendaftaranKP, Semester, Penyelia, Dosen, PembimbingAkademik, Kaprodi, ManajemenFakultas
 
 @admin.register(Mahasiswa)
 class MahasiswaAdmin(admin.ModelAdmin):
@@ -7,15 +7,15 @@ class MahasiswaAdmin(admin.ModelAdmin):
     search_fields = ('nama', 'npm', 'email')
     list_filter = ('user',)
 
-@admin.register(ProgramMBKM)
-class ProgramMBKMAdmin(admin.ModelAdmin):
-    list_display = ('nama', 'minimum_sks', 'maksimum_sks')
-    search_fields = ('nama',)
+# @admin.register(ProgramMBKM)
+# class ProgramMBKMAdmin(admin.ModelAdmin):
+#     list_display = ('nama', 'minimum_sks', 'maksimum_sks')
+#     search_fields = ('nama',)
 
-@admin.register(PendaftaranMBKM)
-class PendaftaranMBKMAdmin(admin.ModelAdmin):
-    list_display = ('mahasiswa', 'program_mbkm', 'status_pendaftaran')
-    search_fields = ('mahasiswanama', 'program_mbkmnama')
+@admin.register(PendaftaranKP)
+class PendaftaranKPAdmin(admin.ModelAdmin):
+    list_display = ('mahasiswa', 'status_pendaftaran')
+    search_fields = ('mahasiswanama', 'status_pendaftaran')
     list_filter = ('status_pendaftaran',)
 
 @admin.register(Semester)

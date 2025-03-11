@@ -37,29 +37,28 @@ class InputDetilKPView(LoginRequiredMixin, UpdateView):
 
 
 # Function-based view untuk menampilkan form input detil KP
-@login_required
+# @login_required
 def input_detil_kp_form(request):
-    if request.method != "GET":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
-    
-    mahasiswa = get_object_or_404(Mahasiswa, user=request.user)
+    if settings.DEBUG:
+        user, created = User.objects.get_or_create(username='devuser')
+        login(request, user)
 
     """Menampilkan form input detil KP dan menangani penyimpanan data."""
     # Cek apakah user memiliki pendaftaran yang masih 'Menunggu Detil'
-    if not PendaftaranKPService.check_has_pending_registration(mahasiswa.user):
-        return redirect('input_detil:no_pending_registration')
+    if not PendaftaranKPService.check_has_pending_registration(request.user):
+        return redirect('input_detil_program:no_pending_registration')
     
     # Ambil data pendaftaran KP yang masih 'Menunggu Detil'
-    pendaftaran_kp = PendaftaranKPService.get_pending_registration(mahasiswa.user)
+    pendaftaran_kp = PendaftaranKPService.get_pending_registration(request.user)
     
     if request.method == 'POST':
         form = InputDetilKPForm(request.POST, instance=pendaftaran_kp)
         if form.is_valid():
-            # penyelia_nama = form.cleaned_data.get("penyelia_nama")
-            # penyelia_email = form.cleaned_data.get("penyelia_email")
-            # penyelia_perusahaan = form.cleaned_data.get("penyelia_perusahaan")
+            penyelia_nama = form.cleaned_data.get("penyelia_nama")
+            penyelia_email = form.cleaned_data.get("penyelia_email")
+            penyelia_perusahaan = form.cleaned_data.get("penyelia_perusahaan")
 
-            # # Check if a User with the email exists; create one if not
+            # Check if a User with the email exists; create one if not
             # user2, created = User.objects.get_or_create(
             #     username=penyelia_email,  # Assuming email as username
             #     defaults={"email": penyelia_email}

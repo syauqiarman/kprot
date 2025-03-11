@@ -1,6 +1,11 @@
 from datetime import datetime
 from django.shortcuts import get_object_or_404
 from .models import PendaftaranKP, Mahasiswa
+import json
+
+# history_data = json.loads(registration.history) if registration.history else []
+# history_data.append(datetime.now().isoformat())
+# registration.history = json.dumps(history_data)
 
 class PendaftaranKPService:
     """
@@ -37,7 +42,10 @@ class PendaftaranKPService:
         else:
             registration.status_pendaftaran = "Menunggu Detil"
         
-        registration.history.append(datetime.now().isoformat())  # Tambahkan timestamp
+        # registration.history.append(datetime.now().isoformat())  # Tambahkan timestamp
+        # history_data = json.loads(registration.history) if registration.history else []
+        # history_data.append(datetime.now().isoformat())
+        # registration.history = json.dumps(history_data)
         registration.save()
         return registration
     
