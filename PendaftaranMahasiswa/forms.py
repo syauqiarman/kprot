@@ -1,56 +1,62 @@
 from django import forms
-from PendaftaranMahasiswa.validators import validate_jumlah_semester_kp, validate_sks_lulus
-from .models import PendaftaranKP
+from django.core.exceptions import ValidationError
+from .models import PendaftaranKP, Semester
+
 
 class PendaftaranKPForm(forms.ModelForm):
+    nama = forms.CharField(disabled=True, required=False, label="Nama Mahasiswa")
+    npm = forms.CharField(disabled=True, required=False, label="NPM")
+    email = forms.EmailField(disabled=True, required=False, label="Email Mahasiswa")
+
     class Meta:
         model = PendaftaranKP
-        fields = ['mahasiswa', 'semester', 'jumlah_semester', 'sks_lulus', 'pernyataan_komitmen']
-
-    # Readonly fields (not saved in model)
-    mahasiswa = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
-    npm = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
-    semester = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
-    
-    jumlah_semester = forms.IntegerField(
-        validators=[validate_jumlah_semester_kp],
-        widget=forms.NumberInput(attrs={"class": "form-control", "min": 6, "max": 12})
-    )
-    sks_lulus = forms.IntegerField(
-        validators=[validate_sks_lulus],
-        widget=forms.NumberInput(attrs={"class": "form-control", "min": 100, "max": 144})
-    )
-    pernyataan_komitmen = forms.BooleanField(
-        required=True,
-        label="Saya menyetujui pernyataan komitmen",
-        widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
-    )
-    status_pendaftaran = forms.CharField(
-        max_length=50,
-        initial="Menunggu Detil",
-        widget=forms.HiddenInput()
-    )
+        fields = [
+            'nama', 'npm', 'email',
+            'semester', 'jumlah_semester', 'sks_lulus', 'pernyataan_komitmen',
+        ]
+        labels = {
+            'jumlah_semester': 'Jumlah Semester yang Telah Ditempuh',
+            'pernyataan_komitmen': 'Saya menyetujui pernyataan komitmen',
+        }
 
     def __init__(self, *args, **kwargs):
-        mahasiswa = kwargs.pop('mahasiswa', None)
-        semester = kwargs.pop('semester', None)   # Get mahasiswa instance if provided
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-
-        if mahasiswa:
-            self.fields['mahasiswa'].initial = mahasiswa.nama
+        if self.user and hasattr(self.user, 'mahasiswa'):
+            mahasiswa = self.user.mahasiswa
+            self.fields['nama'].initial = mahasiswa.nama
             self.fields['npm'].initial = mahasiswa.npm
-        if semester:
-            self.fields['semester'].initial = semester.nama
+            self.fields['email'].initial = mahasiswa.email
 
-
+        semester_aktif = Semester.objects.filter(aktif=True).first()
+        if semester_aktif:
+            self.fields['semester'].initial = semester_aktif
+            self.fields['semester'].disabled = True
+        
     def clean(self):
         cleaned_data = super().clean()
-        cleaned_data["status_pendaftaran"] = "Menunggu Detil"  # Set otomatis ke "Menunggu Detil"
+        jumlah_semester = cleaned_data.get('jumlah_semester')
+        sks_lulus = cleaned_data.get('sks_lulus')
+
+        # Validasi jumlah semester dan SKS
+        if (sks_lulus and sks_lulus < 100):
+            raise ValidationError("Jumlah SKS lulus untuk mendaftar KP harus antara 100 hingga 144.")
+
+        if (jumlah_semester and jumlah_semester < 6):
+            raise ValidationError("Jumlah semester untuk mendaftar KP harus antara 6 hingga 12.")
+        
         return cleaned_data
 
+
     def save(self, commit=True):
-        instance = super().save(commit=False)
-        instance.status_pendaftaran = "Menunggu Detil"  # Tetap set default status
+        # Ambil instance PendaftaranMBKM
+        pendaftaran = super().save(commit=False)
+        
+        pendaftaran.status_pendaftaran = "Menunggu Detil"
+        
+        # Simpan ke database jika commit=True
         if commit:
-            instance.save()
-        return instance
+            pendaftaran.save()
+        
+        return pendaftaran
+

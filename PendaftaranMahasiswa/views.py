@@ -1,25 +1,25 @@
-from django.shortcuts import redirect
-from django.urls import reverse_lazy
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic.edit import CreateView
-from .models import PendaftaranKP, Mahasiswa, Semester
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
 from .forms import PendaftaranKPForm
+from .models import PendaftaranKP
 
-class InputDetilKPView(LoginRequiredMixin, CreateView):
-    model = PendaftaranKP
-    form_class = PendaftaranKPForm
-    template_name = 'input_detil_program/input_detil_kp.html'
-    success_url = reverse_lazy('success_page')
+@login_required
+def daftar_kp(request):
+    if request.method == 'POST':
+        form = PendaftaranKPForm(request.POST, user=request.user)
+        if form.is_valid():
+            # Simpan data pendaftaran
+            pendaftaran = form.save(commit=False)
+            pendaftaran.mahasiswa = request.user.mahasiswa
+            pendaftaran.save()
+            return redirect("PendaftaranMahasiswa:kp_berhasil", pendaftaran_id=pendaftaran.id)  # Kirim ID pendaftaran ke halaman sukses
+    else:
+        form = PendaftaranKPForm(user=request.user)
+    
+    return render(request, 'pendaftaran_kp.html', {'form': form})
 
-    def get_form_kwargs(self):
-        """Tambahkan mahasiswa dan semester ke dalam form"""
-        kwargs = super().get_form_kwargs()
-        mahasiswa = Mahasiswa.objects.get(user=self.request.user)
-        semester = Semester.objects.latest('id')  # Ambil semester terbaru
-        kwargs.update({'mahasiswa': mahasiswa, 'semester': semester})
-        return kwargs
-
-    def form_valid(self, form):
-        """Set status pendaftaran dan simpan form"""
-        form.instance.status_pendaftaran = "Menunggu Detil"
-        return super().form_valid(form)
+@login_required
+def kp_berhasil(request, pendaftaran_id):
+    # Ambil data pendaftaran berdasarkan ID
+    pendaftaran = PendaftaranKP.objects.get(id=pendaftaran_id)
+    return render(request, 'daftar_berhasil.html', {'pendaftaran': pendaftaran})
