@@ -1,5 +1,5 @@
 from django.urls import path
-from input_detil.views import InputDetilKPView, input_detil_kp_form, no_pending_registration, success_page
+from input_detil.views import InputDetilKPView, input_detil_kp_form, no_pending_registration, input_detil_success
 
 app_name = 'input_detil'
 
@@ -9,5 +9,5 @@ urlpatterns = [
     # Function-based view option
     path('input-detil-kp-form/', input_detil_kp_form, name='show_input_detil_kp_form'),
     path('no-pending/', no_pending_registration, name='no_pending_registration'),
-    path('success-page/', success_page, name='success_page'),
+    path("input-detil-kp-form/success/<int:pendaftaran_id>/", input_detil_success, name="input_detil_success"),
 ]

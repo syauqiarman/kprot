@@ -80,14 +80,12 @@ class InputDetilKPForm(forms.ModelForm):
 
         # Check if a User with the email exists; create one if not
         user2, created = User.objects.get_or_create(
-            email = penyelia_email,
             defaults={"username": penyelia_email}
         )
 
         if penyelia_nama and penyelia_perusahaan and penyelia_email:
             penyelia, created = Penyelia.objects.get_or_create(
                 user= user2,
-                nama=penyelia_nama,
                 defaults={"nama": penyelia_nama, "perusahaan": penyelia_perusahaan, "email": penyelia_email}
             )
             if not created:
@@ -106,4 +104,22 @@ class InputDetilKPForm(forms.ModelForm):
 
         return instance
 
-# class input_detil_kp(forms.Mol)
+# class input_detil_kp(forms.ModelForm):
+#     class Meta:
+#         model = PendaftaranKP
+#         fields = ['role', 'total_jam_kerja', 'tanggal_mulai', 'tanggal_selesai', 'penyelia_nama', 'penyelia_perusahaan', 'penyelia_email']
+#         widgets = {
+#             'tanggal_mulai': forms.DateInput(attrs={'type': 'date'}),
+#             'tanggal_selesai': forms.DateInput(attrs={'type': 'date'}),
+#         }
+
+#         # Readonly fields (tidak akan disimpan ke model)
+#     mahasiswa = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
+#     npm = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
+#     semester = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
+#     sks_lulus = forms.IntegerField(widget=forms.NumberInput(attrs={'readonly': 'readonly'}), required=False)
+
+#     # Penyelia fields (tidak termasuk dalam model secara langsung)
+#     penyelia_nama = forms.CharField(required=False, label="Nama Penyelia")
+#     penyelia_perusahaan = forms.CharField(required=False, label="Perusahaan Penyelia")
+#     penyelia_email = forms.EmailField(required=False, label="Email Penyelia")
