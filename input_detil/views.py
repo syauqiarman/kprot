@@ -12,28 +12,28 @@ from django.contrib.auth import login
 from django.http import HttpResponse, JsonResponse
 
 # Create your views here.
-class InputDetilKPView(LoginRequiredMixin, UpdateView):
-    model = PendaftaranKP
-    form_class = InputDetilKPForm
-    template_name = 'input_detil/input_detil_kp.html'
-    success_url = reverse_lazy('success_page')
+# class InputDetilKPView(LoginRequiredMixin, UpdateView):
+#     model = PendaftaranKP
+#     form_class = InputDetilKPForm
+#     template_name = 'input_detil/input_detil_kp.html'
+#     # success_url = reverse_lazy('input_detil_success')
     
-    def get_object(self):
-        """Dapatkan pendaftaran KP yang masih 'Menunggu Detil' untuk user."""
-        return PendaftaranKPService.get_pending_registration(self.request.user)
+#     def get_object(self):
+#         """Dapatkan pendaftaran KP yang masih 'Menunggu Detil' untuk user."""
+#         return PendaftaranKPService.get_pending_registration(self.request.user)
     
-    def form_valid(self, form):
-        """Validasi form dan update status pendaftaran jika semua field telah diisi."""
-        registration = form.save()
-        PendaftaranKPService.update_registration_status(registration)
-        return super().form_valid(form)
+#     def form_valid(self, form):
+#         """Validasi form dan update status pendaftaran jika semua field telah diisi."""
+#         registration = form.save()
+#         PendaftaranKPService.update_registration_status(registration)
+#         return super().form_valid(form)
     
-    def dispatch(self, request, *args, **kwargs):
-        """Pastikan user memiliki pendaftaran yang masih 'Menunggu Detil'."""
-        if not PendaftaranKPService.check_has_pending_registration(request.user):
-            return redirect('input_detil:no_pending_registration')
+#     def dispatch(self, request, *args, **kwargs):
+#         """Pastikan user memiliki pendaftaran yang masih 'Menunggu Detil'."""
+#         if not PendaftaranKPService.check_has_pending_registration(request.user):
+#             return redirect('input_detil:no_pending_registration')
         
-        return super().dispatch(request, *args, **kwargs)
+#         return super().dispatch(request, *args, **kwargs)
 
 
 # Function-based view untuk menampilkan form input detil KP
@@ -46,7 +46,8 @@ def input_detil_kp_form(request):
     """Menampilkan form input detil KP dan menangani penyimpanan data."""
     # Cek apakah user memiliki pendaftaran yang masih 'Menunggu Detil'
     if not PendaftaranKPService.check_has_pending_registration(request.user):
-        return redirect('input_detil_program:no_pending_registration')
+        print("masuk sini yeah")
+        return redirect('input_detil:no_pending_registration')
     
     # Ambil data pendaftaran KP yang masih 'Menunggu Detil'
     pendaftaran_kp = PendaftaranKPService.get_pending_registration(request.user)
