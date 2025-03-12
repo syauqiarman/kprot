@@ -26,6 +26,8 @@ class PendaftaranKPAdmin(admin.ModelAdmin):
     search_fields = ('mahasiswanama', 'status_pendaftaran')
     list_filter = ('status_pendaftaran',)
 
+    
+
 @admin.register(Semester)
 class SemesterAdmin(admin.ModelAdmin):
     list_display = ('nama', 'gasal_genap', 'tahun', 'aktif')
