@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pendaftaran kp</title>
+    <style>
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .errorlist {
+            color: red;
+        }
+    </style>
+</head>
+</body>
+    <h1>Pendaftaran Berhasil!</h1>
+    <p>Terima kasih telah mendaftar program KP. Status pendaftaran Anda: <strong>{{ pendaftaran.status_pendaftaran }}</strong>.</p>
+    <a href="{% url 'input_detil:input_detil_kp_form' %}">Kembali ke Form Pendaftaran</a>
+</body>
+</html>
