@@ -6,7 +6,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .forms import InputDetilKPForm
 from .services import PendaftaranKPService
-from .models import PendaftaranKP, Mahasiswa, User, Penyelia
+from database.models import PendaftaranKP, Mahasiswa, User, Penyelia
 from django.conf import settings
 from django.contrib.auth import login
 from django.http import HttpResponse, JsonResponse
