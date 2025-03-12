@@ -39,6 +39,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'main',
     'input_detil',
+    'PendaftaranMahasiswaMBKM',
+    'PendaftaranMahasiswaKP',
+    'PendaftaranMahasiswa',
+    'database',
 ]
 
 MIDDLEWARE = [
@@ -100,7 +104,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
