@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pilih FITUR</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md text-center">
+            <h1 class="text-2xl font-bold mb-6">Pilih Fitur yang Ingin diAkses</h1>
+            
+            <div class="space-y-4">
+                <a href="{% url 'PendaftaranMahasiswa:daftar' %}" class="block w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300">
+                    Pendaftaran Mahasiswa
+                </a>
+                <a href="{% url 'PendaftaranMahasiswa:daftar' %}" class="block w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300">
+                    Input Detil Mahasiswa
+                </a>
+                <a href="{% url 'PendaftaranMahasiswa:daftar' %}" class="block w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300">
+                    Lihat List Mahasiswa
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

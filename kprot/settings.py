@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'PendaftaranMahasiswaKP',
     'PendaftaranMahasiswa',
     'database',
+    'dashboard'
 ]
 
 MIDDLEWARE = [
