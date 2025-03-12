@@ -22,5 +22,6 @@ urlpatterns = [
     path('main/', include('main.urls')),
     path('pendaftaranmbkm/', include('PendaftaranMahasiswaMBKM.urls')),
     path('pendaftarankp/', include('PendaftaranMahasiswaKP.urls')),
-    path('', include('PendaftaranMahasiswa.urls')),
+    path('pilihpendaftaran/', include('PendaftaranMahasiswa.urls')),
+    path('', include('dashboard.urls')),
 ]

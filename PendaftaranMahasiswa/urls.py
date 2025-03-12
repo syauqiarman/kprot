@@ -4,5 +4,5 @@ from . import views
 app_name = 'PendaftaranMahasiswa'
 
 urlpatterns = [
-    path('', views.home, name='home'),  # Halaman awal
+    path('daftar/', views.daftar, name='daftar'),  # Halaman awal
 ]
