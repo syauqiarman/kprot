@@ -349,7 +349,7 @@ class PendaftaranMBKMViewsTest(BaseTest):
 
     # Test positif: Pendaftaran berhasil tanpa file upload
     def test_daftar_mbkm_success_without_file(self):
-        request = self.factory.post(reverse('daftar_mbkm'), data=self.valid_data)
+        request = self.factory.post(reverse('PendaftaranMahasiswaMBKM:daftar_mbkm'), data=self.valid_data)
         request.user = self.user
         response = daftar_mbkm(request)
         self.assertEqual(response.status_code, 302)  # Redirect ke halaman sukses
@@ -361,7 +361,7 @@ class PendaftaranMBKMViewsTest(BaseTest):
         form_data = self.valid_data.copy()
         form_data['persetujuan_pa'] = pdf_file
         
-        request = self.factory.post(reverse('daftar_mbkm'), data=form_data)
+        request = self.factory.post(reverse('PendaftaranMahasiswaMBKM:daftar_mbkm'), data=form_data)
         request.user = self.user
         response = daftar_mbkm(request)
         self.assertEqual(response.status_code, 302)  # Redirect ke halaman sukses
@@ -372,7 +372,7 @@ class PendaftaranMBKMViewsTest(BaseTest):
         invalid_data = self.valid_data.copy()
         invalid_data['jumlah_semester'] = 4  # Jumlah semester tidak valid
         
-        request = self.factory.post(reverse('daftar_mbkm'), data=invalid_data)
+        request = self.factory.post(reverse('PendaftaranMahasiswaMBKM:daftar_mbkm'), data=invalid_data)
         request.user = self.user
         response = daftar_mbkm(request)
         self.assertEqual(response.status_code, 200)  # Tetap di halaman form
@@ -393,7 +393,7 @@ class PendaftaranMBKMViewsTest(BaseTest):
             status_pendaftaran="Menunggu Persetujuan PA",
         )
         
-        request = self.factory.get(reverse('daftar_berhasil', args=[pendaftaran.id]))
+        request = self.factory.get(reverse('PendaftaranMahasiswaMBKM:daftar_berhasil', args=[pendaftaran.id]))
         request.user = self.user
         response = daftar_berhasil(request, pendaftaran_id=pendaftaran.id)
         self.assertEqual(response.status_code, 200)
@@ -404,7 +404,7 @@ class TemplateRenderingTest(BaseTest):
     # Test positif: Template daftar_mbkm menampilkan form dengan benar
     def test_daftar_mbkm_template(self):
         self.client.force_login(self.user)
-        response = self.client.get(reverse('daftar_mbkm'))
+        response = self.client.get(reverse('PendaftaranMahasiswaMBKM:daftar_mbkm'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Form Pendaftaran MBKM")
         self.assertContains(response, "Nama:")
@@ -427,7 +427,7 @@ class TemplateRenderingTest(BaseTest):
         )
         
         self.client.force_login(self.user)
-        response = self.client.get(reverse('daftar_berhasil', args=[pendaftaran.id]))
+        response = self.client.get(reverse('PendaftaranMahasiswaMBKM:daftar_berhasil', args=[pendaftaran.id]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Pendaftaran Berhasil!")
         self.assertContains(response, "Menunggu Persetujuan PA")
