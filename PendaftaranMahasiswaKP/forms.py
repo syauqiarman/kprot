@@ -37,7 +37,12 @@ class PendaftaranKPForm(forms.ModelForm):
         cleaned_data = super().clean()
         jumlah_semester = cleaned_data.get('jumlah_semester')
         sks_lulus = cleaned_data.get('sks_lulus')
+        mahasiswa = self.user.mahasiswa
+        semester = cleaned_data.get('semester')
 
+        if PendaftaranKP.objects.filter(mahasiswa=mahasiswa, semester=semester).exists():
+            raise ValidationError("Anda sudah mendaftar di semester ini.")
+        
         # Validasi jumlah semester dan SKS
         if (sks_lulus and sks_lulus < 100):
             raise ValidationError("Jumlah SKS lulus untuk mendaftar KP harus antara 100 hingga 144.")

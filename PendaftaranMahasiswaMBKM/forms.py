@@ -69,7 +69,12 @@ class PendaftaranMBKMForm(forms.ModelForm):
         pernyataan_komitmen = cleaned_data.get('pernyataan_komitmen')
         persetujuan_pa = cleaned_data.get('persetujuan_pa')
         tanggal_persetujuan = cleaned_data.get('tanggal_persetujuan')
+        mahasiswa = self.user.mahasiswa
+        semester = cleaned_data.get('semester')
 
+        if PendaftaranMBKM.objects.filter(mahasiswa=mahasiswa, semester=semester).exists():
+            raise ValidationError("Anda sudah mendaftar di semester ini.")
+        
         # Validasi: Jika ada file persetujuan PA, tanggal_persetujuan harus diisi
         if persetujuan_pa and not tanggal_persetujuan:
             raise ValidationError({
