@@ -1,15 +1,9 @@
-from django.views.generic import UpdateView
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.urls import reverse_lazy
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from .forms import InputDetilKPForm
-from .services import PendaftaranKPService
-from database.models import PendaftaranKP, Mahasiswa, User, Penyelia
-from django.conf import settings
-from django.contrib.auth import login
-from django.http import HttpResponse, JsonResponse
+from input_detil.forms import InputDetilKPForm, InputDetilMBKMForm
+from input_detil.services import PendaftaranKPService, PendaftaranMBKMService
+from database.models import PendaftaranKP, PendaftaranMBKM
 
 # Create your views here.
 # class InputDetilKPView(LoginRequiredMixin, UpdateView):
@@ -34,6 +28,32 @@ from django.http import HttpResponse, JsonResponse
 #             return redirect('input_detil:no_pending_registration')
         
 #         return super().dispatch(request, *args, **kwargs)
+
+# @login_required
+def input_detil_mbkm(request):
+    """
+    Function-based view to handle the InputDetilMBKMForm.
+    """
+
+    if not PendaftaranMBKMService.check_has_pending_registration(request.user):
+        messages.error(request, "You do not have a pending MBKM registration.")
+        return redirect('input_detil:no_pending_registration')
+
+    pendaftaran_mbkm = PendaftaranMBKMService.get_pending_registration(request.user)
+
+    if request.method == 'POST':
+        form = InputDetilMBKMForm(request.POST, instance=pendaftaran_mbkm)
+        if form.is_valid():
+            instance = form.save(commit=False)
+            instance.save()
+            return redirect('input_detil:input_detil_mbkm_success', pendaftaran_id=pendaftaran_mbkm.id)
+    else:
+        form = InputDetilMBKMForm(instance=pendaftaran_mbkm)
+    
+    return render(request, 'input_detil_mbkm.html', {
+        'form': form,
+        'pendaftaran_mbkm': pendaftaran_mbkm
+    })
 
 
 # Function-based view untuk menampilkan form input detil KP
@@ -94,3 +114,7 @@ def input_detil_success(request, pendaftaran_id):
     pendaftaran = PendaftaranKP.objects.get(id=pendaftaran_id)
     return render(request, 'success_page.html', {'pendaftaran': pendaftaran})
 
+@login_required
+def input_detil_mbkm_success(request, pendaftaran_id):
+    pendaftaran = PendaftaranMBKM.objects.get(id=pendaftaran_id)
+    return render(request, 'mbkm_success_page.html', {'pendaftaran': pendaftaran})

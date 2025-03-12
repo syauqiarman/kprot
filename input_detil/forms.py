@@ -1,7 +1,116 @@
 from django import forms
-from database.models import PendaftaranKP, Penyelia, Semester, User
+from database.models import PendaftaranKP, Penyelia, Semester, User, PendaftaranMBKM, ProgramMBKM
 import secrets
 import logging
+
+JENIS_MAGANG_CHOICES = [
+    ('studi_independent', 'Studi Independent (Maks 10 SKS)'),
+    ('magang_mandiri', 'Magang Mandiri (Maks 20 SKS)'),
+    ('magang_mitra', 'Magang Mitra (Maks 20 SKS)'),
+]
+
+class InputDetilMBKMForm(forms.ModelForm):
+    class Meta:
+        model = PendaftaranMBKM
+        fields = ['role', 'program_mbkm', 'tanggal_mulai', 'tanggal_selesai',]
+
+        widgets = {
+            'tanggal_mulai': forms.DateInput(attrs={'type': 'date'}),
+            'tanggal_selesai': forms.DateInput(attrs={'type': 'date'}),
+        }
+        
+    mahasiswa_nama = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
+    mahasiswa_npm = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
+    semester = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
+    
+    penyelia_nama = forms.CharField(widget=forms.TextInput(), required=True)
+    penyelia_email = forms.EmailField(widget=forms.EmailInput(), required=True)
+    penyelia_perusahaan = forms.CharField(widget=forms.TextInput(), required=True)
+    
+    program_mbkm = forms.ModelChoiceField(
+        queryset=ProgramMBKM.objects.all(),
+        widget=forms.RadioSelect(attrs={'class': 'flex space-x-4'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        # Get the pendaftaran_mbkm instance (if provided)
+        self.pendaftaran_mbkm = kwargs.get('instance', None)
+        super().__init__(*args, **kwargs)
+
+        if self.pendaftaran_mbkm:
+            mahasiswa = getattr(self.pendaftaran_mbkm, "mahasiswa", None)
+            semester = getattr(self.pendaftaran_mbkm, "semester", None)
+
+            self.fields['mahasiswa_nama'].initial = getattr(mahasiswa, "nama", "")
+            self.fields['mahasiswa_npm'].initial = getattr(mahasiswa, "npm", "")
+            self.fields['semester'].initial = getattr(semester, "nama", "")
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        readonly_fields = ["mahasiswa", "npm", "semester"]
+        for field in readonly_fields:
+            cleaned_data.pop(field, None)
+            
+        required_fields = ["role", "program_mbkm", "penyelia_nama", "penyelia_perusahaan", "penyelia_email", "tanggal_mulai", "tanggal_selesai"]
+        errors = {}
+
+        for field in required_fields:
+            if not cleaned_data.get(field):
+                errors[field] = f"{self.fields[field].label} harus diisi sebelum status bisa menjadi Terdaftar."
+
+        if errors:
+            raise forms.ValidationError(errors)
+            
+        # Validate tanggal_mulai and tanggal_selesai
+        tanggal_mulai = cleaned_data.get('tanggal_mulai')
+        tanggal_selesai = cleaned_data.get('tanggal_selesai')
+
+        if tanggal_mulai and tanggal_selesai:
+            if tanggal_mulai > tanggal_selesai:
+                raise forms.ValidationError("Tanggal mulai tidak boleh setelah tanggal selesai.")
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        required_fields = ["role", "program_mbkm", "penyelia_nama", "penyelia_perusahaan", "penyelia_email", "tanggal_mulai", "tanggal_selesai"]
+        is_complete = all(self.cleaned_data.get(field) for field in required_fields)
+
+        instance.status_pendaftaran = "Terdaftar" if is_complete else "Menunggu Detil"
+
+        penyelia_nama = self.cleaned_data.get("penyelia_nama")
+        penyelia_perusahaan = self.cleaned_data.get("penyelia_perusahaan")
+        penyelia_email = self.cleaned_data.get("penyelia_email")
+        penyelia_password = secrets.token_urlsafe(12)
+        user2, created = User.objects.get_or_create(
+            email=penyelia_email,
+            defaults={"username": penyelia_email}
+        )
+
+        if created:
+            user2.set_password(penyelia_password)
+            user2.save()
+            print(f"Password untuk {penyelia_email}: {penyelia_password}")
+
+        if penyelia_nama and penyelia_perusahaan and penyelia_email:
+            penyelia, created = Penyelia.objects.get_or_create(
+                user= user2,
+                defaults={"nama": penyelia_nama, "perusahaan": penyelia_perusahaan, "email": penyelia_email}
+            )
+            if not created:
+                penyelia.nama = penyelia_nama
+                penyelia.perusahaan = penyelia_perusahaan
+                penyelia.email = penyelia_email
+                penyelia.save()
+
+            instance.penyelia = penyelia
+
+        if commit:
+            instance.save()
+
+        return instance
 
 class InputDetilKPForm(forms.ModelForm):
     class Meta:

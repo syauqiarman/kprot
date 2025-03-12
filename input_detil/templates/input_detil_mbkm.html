@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Detail Program MBKM</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+        <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
+            <h1 class="text-2xl font-bold text-center mb-6">Silakan lengkapi detil pendaftaran MBKM anda.</h1>
+            
+            {% if messages %}
+                <div class="mb-6">
+                    {% for message in messages %}
+                        <div class="p-4 mb-4 text-sm rounded-lg {% if message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label class="form-label">Nama Mahasiswa:</label>
+                    <input type="text" class="form-control" value="{{ pendaftaran_mbkm.mahasiswa.nama }}" disabled>
+                </div>
+    
+                <div class="mb-3">
+                    <label class="form-label">NPM :</label>
+                    <input type="text" class="form-control" value="{{ pendaftaran_mbkm.mahasiswa.npm }}" disabled>
+                </div>
+    
+                <div class="mb-3">
+                    <label class="form-label">Semester :</label>
+                    <input type="text" class="form-control" value="{{ pendaftaran_mbkm.semester.nama }}" disabled>
+                </div>
+    
+                <div class="mb-3">
+                    <label class="form-label">Program MBKM:</label>
+                    {{ form.program_mbkm }}
+                    {% if form.program_mbkm.errors %}
+                        <p class="text-sm text-red-500">{{ form.program_mbkm.errors }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.role.id_for_label }}" class="form-label">Role :</label>
+                    {{ form.role }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.tanggal_mulai.id_for_label }}" class="form-label">Tanggal mulai :</label>
+                    {{ form.tanggal_mulai }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.tanggal_selesai.id_for_label }}" class="form-label">Tanggal selesai :</label>
+                    {{ form.tanggal_selesai }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.penyelia_nama.id_for_label }}" class="form-label">Nama penyelia :</label>
+                    {{ form.penyelia_nama }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.penyelia_perusahaan.id_for_label }}" class="form-label">Perusahaan :</label>
+                    {{ form.penyelia_perusahaan }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.penyelia_email.id_for_label }}" class="form-label">Email penyelia :</label>
+                    {{ form.penyelia_email }}
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-100">Simpan</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
