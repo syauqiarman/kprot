@@ -1,0 +1,13 @@
+django
+gunicorn
+whitenoise
+psycopg2-binary
+requests
+urllib3
+django-environ
+django-cors-headers
+coverage
+dj_database_url
+django-silk
+djangorestframework
+django-filter

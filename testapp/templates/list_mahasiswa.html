@@ -1,0 +1,78 @@
+{% block content %}
+<h1>Daftar Mahasiswa - {{ semester.nama }}</h1>
+
+<!-- Filter Form -->
+<form method="GET">
+    <label for="angkatan">Angkatan:</label>
+    <input type="text" name="angkatan" value="{{ request.GET.angkatan }}" placeholder="Contoh: 20">
+    
+    <label for="program">Program:</label>
+    <select name="program">
+        <option value="">Semua</option>
+        <option value="KP" {% if request.GET.program == "KP" %}selected{% endif %}>KP</option>
+        <option value="MBKM" {% if request.GET.program == "MBKM" %}selected{% endif %}>MBKM</option>
+    </select>
+
+    <label for="status">Status:</label>
+    <select name="status">
+        <option value="">Semua</option>
+        <option value="Menunggu Detil" {% if request.GET.status == "Menunggu Detil" %}selected{% endif %}>Menunggu Detil</option>
+        <option value="Terdaftar" {% if request.GET.status == "Terdaftar" %}selected{% endif %}>Terdaftar</option>
+        <option value="Menunggu Persetujuan PA" {% if request.GET.status == "Menunggu Persetujuan PA" %}selected{% endif %}>Menunggu Persetujuan PA</option>
+        <option value="Ditolak PA" {% if request.GET.status == "Ditolak PA" %}selected{% endif %}>Ditolak PA</option>
+        <option value="Menunggu Persetujuan Kaprodi" {% if request.GET.status == "Menunggu Persetujuan Kaprodi" %}selected{% endif %}>Menunggu Persetujuan Kaprodi</option>
+        <option value="Ditolak Kaprodi" {% if request.GET.status == "Ditolak Kaprodi" %}selected{% endif %}>Ditolak Kaprodi</option>
+        <option value="Menunggu Verifikasi Dosen" {% if request.GET.status == "Menunggu Verifikasi Dosen" %}selected{% endif %}>Menunggu Verifikasi Dosen</option>
+        <option value="Ditolak Dosen" {% if request.GET.status == "Ditolak Dosen" %}selected{% endif %}>Ditolak Dosen</option>
+    </select>
+
+    <button type="submit">Filter</button>
+</form>
+
+<!-- Tabel Data Mahasiswa -->
+<table border="1">
+    <thead>
+        <tr>
+            <th>NPM</th>
+            <th>Nama</th>
+            <th>Program</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for mahasiswa in filter.qs %}
+            <tr>
+                <td>{{ mahasiswa.npm }}</td>
+                <td>{{ mahasiswa.nama }}</td>
+                <td>
+                    {% if mahasiswa.pendaftaran_kp_set.all|length > 0 %}
+                        KP
+                    {% elif mahasiswa.pendaftaran_mbkm_set.all|length > 0 %}
+                        MBKM
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% with mahasiswa.pendaftaran_kp_set.all|first as kp %}
+                        {% with mahasiswa.pendaftaran_mbkm_set.all|first as mbkm %}
+                            {% if kp %}
+                                {{ kp.status_pendaftaran }}
+                            {% elif mbkm %}
+                                {{ mbkm.status_pendaftaran }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        {% endwith %}
+                    {% endwith %}
+                </td>
+            </tr>
+        {% empty %}
+            <tr>
+                <td colspan="4">Tidak ada mahasiswa yang sesuai dengan filter.</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

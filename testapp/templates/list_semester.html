@@ -1,0 +1,12 @@
+{% block content %}
+<h2>Daftar Semester</h2>
+<ul>
+    {% for semester in semesters %}
+        <li>
+            <a href="{% url 'testapp:list_mahasiswa' semester.id %}">
+                {{ semester.nama }} ({{ semester.tahun }})
+            </a>
+        </li>
+    {% endfor %}
+</ul>
+{% endblock %}
