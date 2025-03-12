@@ -38,7 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'main',
+    'PendaftaranMahasiswaMBKM',
+    'PendaftaranMahasiswaKP',
     'PendaftaranMahasiswa',
+    'database',
 ]
 
 MIDDLEWARE = [

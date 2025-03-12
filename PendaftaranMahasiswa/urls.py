@@ -1,7 +1,8 @@
 from django.urls import path
 from . import views
 
+app_name = 'PendaftaranMahasiswa'
+
 urlpatterns = [
-    path('daftar/', views.daftar_mbkm, name='daftar_mbkm'),
-    path('daftar/berhasil/<int:pendaftaran_id>/', views.daftar_berhasil, name='daftar_berhasil'),
+    path('', views.home, name='home'),  # Halaman awal
 ]

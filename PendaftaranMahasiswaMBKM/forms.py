@@ -1,6 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import PendaftaranMBKM, ProgramMBKM, Mahasiswa, Semester
+from database.models import PendaftaranMBKM, ProgramMBKM, Mahasiswa, Semester
 
 class PendaftaranMBKMForm(forms.ModelForm):
     nama = forms.CharField(disabled=True, required=False, label="Nama Mahasiswa")
@@ -112,6 +112,7 @@ class PendaftaranMBKMForm(forms.ModelForm):
     def save(self, commit=True):
         # Ambil instance PendaftaranMBKM
         pendaftaran = super().save(commit=False)
+        pendaftaran.mahasiswa = self.user.mahasiswa
         
         # Atur status pendaftaran berdasarkan ada/tidaknya file persetujuan PA
         if pendaftaran.persetujuan_pa:
