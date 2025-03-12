@@ -1,5 +1,5 @@
 from django import forms
-from .models import PendaftaranKP, Penyelia, Semester, User
+from database.models import PendaftaranKP, Penyelia, Semester, User
 import secrets
 import logging
 

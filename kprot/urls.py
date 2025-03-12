@@ -20,11 +20,9 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('main/', include('main.urls')),
-<<<<<<< HEAD
     path('pendaftaranmbkm/', include('PendaftaranMahasiswaMBKM.urls')),
     path('pendaftarankp/', include('PendaftaranMahasiswaKP.urls')),
-    path('', include('PendaftaranMahasiswa.urls')),
-=======
-    path('', include('input_detil.urls')),
->>>>>>> cd6150c93279b7fb338a814143b0132afd774562
+    path('pendaftaranmahasiswa/', include('PendaftaranMahasiswa.urls')),
+    path('inputdetil', include('input_detil.urls')),
+    path('', include('dashboard.urls')),
 ]

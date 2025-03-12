@@ -1,6 +1,6 @@
 from datetime import datetime
 from django.shortcuts import get_object_or_404
-from .models import PendaftaranKP, Mahasiswa
+from database.models import PendaftaranKP, Mahasiswa
 import json
 
 # history_data = json.loads(registration.history) if registration.history else []
