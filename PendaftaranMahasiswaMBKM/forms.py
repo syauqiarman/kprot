@@ -21,16 +21,34 @@ class PendaftaranMBKMForm(forms.ModelForm):
             'program_mbkm': 'Program MBKM',
             'estimasi_sks_konversi': 'Estimasi SKS Konversi',
             'rencana_lulus_semester_ini': 'Rencana Lulus Semester Ini',
-            'persetujuan_pa': 'Upload Persetujuan PA (PDF)',
-            'tanggal_persetujuan': 'Cantumkan Tanggal PA saat Menyetujui Pendaftaran',
-            'pernyataan_komitmen': 'Saya menyetujui pernyataan komitmen',
+            'persetujuan_pa': 'Upload PDF Persetujuan PA (Opsional)',
+            'tanggal_persetujuan': 'Tanggal PA saat Menyetujui Pendaftaran (Opsional)',
+            'pernyataan_komitmen': 'Saya menyatakan bahwa semua informasi yang diberikan benar dan bersedia mengikuti program hingga selesai',
         }
         widgets = {
-            'semester': forms.Select(attrs={'class': 'form-control'}),
-            'program_mbkm': forms.Select(attrs={'class': 'form-control'}),
-            'persetujuan_pa': forms.ClearableFileInput(attrs={'accept': 'application/pdf'}),
-            'tanggal_persetujuan': forms.DateInput(attrs={'type': 'date'}),
-            'pernyataan_komitmen': forms.CheckboxInput(),
+            'program_mbkm': forms.Select(attrs={
+                'class': 'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent'
+            }),
+            'sks_diambil': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent',
+                'min': 0
+            }),
+            'estimasi_sks_konversi': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent',
+                'min': 1
+            }),
+            'jumlah_semester': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent',
+                'min': 1
+            }),
+            'tanggal_persetujuan': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent'
+            }),
+            'pernyataan_komitmen': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 text-gray-600 border-gray-300 rounded focus:ring-gray-500'
+            }),
+
         }
 
     def __init__(self, *args, **kwargs):

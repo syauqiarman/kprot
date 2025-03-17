@@ -407,9 +407,9 @@ class TemplateRenderingTest(BaseTest):
         response = self.client.get(reverse('PendaftaranMahasiswaMBKM:daftar_mbkm'))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Form Pendaftaran MBKM")
-        self.assertContains(response, "Nama:")
-        self.assertContains(response, "NPM:")
-        self.assertContains(response, "Email:")
+        self.assertContains(response, "Nama Mahasiswa")
+        self.assertContains(response, "NPM")
+        self.assertContains(response, "Email Mahasiswa")
 
     # Test positif: Template daftar_berhasil menampilkan data pendaftaran dengan benar
     def test_daftar_berhasil_template(self):

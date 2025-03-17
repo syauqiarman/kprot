@@ -16,7 +16,21 @@ class PendaftaranKPForm(forms.ModelForm):
         ]
         labels = {
             'jumlah_semester': 'Jumlah Semester yang Telah Ditempuh',
-            'pernyataan_komitmen': 'Saya menyetujui pernyataan komitmen',
+            'sks_lulus': 'Jumlah SKS yang lulus saat ini',
+            'pernyataan_komitmen': 'Saya menyatakan bahwa semua informasi yang diberikan benar dan bersedia mengikuti program hingga selesai',
+        }
+        widgets = {
+            'sks_lulus': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent',
+                'min': 0
+            }),
+            'jumlah_semester': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent',
+                'min': 1
+            }),
+            'pernyataan_komitmen': forms.CheckboxInput(attrs={
+                'class': 'h-4 w-4 text-gray-600 border-gray-300 rounded focus:ring-gray-500'
+            }),
         }
 
     def __init__(self, *args, **kwargs):

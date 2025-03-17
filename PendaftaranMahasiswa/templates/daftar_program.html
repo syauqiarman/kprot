@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Program Tracking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-5">
+    <div class="grid grid-cols-3 gap-4">
+        <!-- Clock Section -->
+        <div class="bg-white p-4 rounded-lg shadow">
+            <h1 class="text-xl font-bold">Clock</h1>
+            <p class="mt-2 text-lg font-semibold">Day <span id="clock">00.00.00</span></p>
+        </div>
+
+        <!-- KP Section -->
+        <div class="bg-white p-4 rounded-lg shadow">
+            <h2 class="text-lg font-bold mb-2">KP</h2>
+            <p>Persyaratan:</p>
+            <ul class="list-disc list-inside mt-1 space-y-2 text-gray-600">
+                <li>Mahasiswa minimal semester 6</li>
+                <li>Memiliki SKS lulus minimal 100 SKS</li>
+                <li>Tidak memiliki lebih dari 24 SKS yang diambil</li>
+                <li>Berkomitmen mengikuti kegiatan sampai akhir</li>
+            </ul>
+            {% if sudah_daftar_kp %}
+            <a href="{% url 'PendaftaranMahasiswaKP:pendaftaran_kp' %}" 
+                class="mt-4 inline-block bg-gray-800 text-white text-center py-2 px-4 rounded hover:bg-gray-700">
+                Lihat Status Pendaftaran
+            </a>
+            {% elif sudah_daftar_mbkm %}
+                <div class="mt-4 inline-block bg-gray-300 text-gray-600 text-center py-2 px-4 rounded cursor-not-allowed">
+                    Sudah Daftar MBKM
+                </div>
+            {% else %}
+                <a href="{% url 'PendaftaranMahasiswaKP:pendaftaran_kp' %}" 
+                   class="mt-4 inline-block bg-gray-800 text-white text-center py-2 px-4 rounded hover:bg-gray-700">
+                    Daftar
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- MBKM Section -->
+        <div class="bg-white p-4 rounded-lg shadow">
+            <h2 class="text-lg font-bold mb-2">MBKM</h2>
+            <p>Persyaratan:</p>
+            <ul class="list-disc list-inside mt-1 space-y-2 text-gray-600">
+                <li>Mahasiswa minimal semester 5</li>
+                <li>Tidak memiliki lebih dari 24 SKS yang diambil</li>
+                <li>Berkomitmen mengikuti kegiatan sampai akhir</li>
+                <li>-</li>
+            </ul>
+            {% if sudah_daftar_mbkm %}
+            <a href="{% url 'PendaftaranMahasiswaMBKM:daftar_mbkm' %}" 
+                class="mt-4 inline-block bg-gray-800 text-white text-center py-2 px-4 rounded hover:bg-gray-700">
+                Lihat Status Pendaftaran
+            </a>
+            {% elif sudah_daftar_kp %}
+                <div class="mt-4 inline-block bg-gray-300 text-gray-600 text-center py-2 px-4 rounded cursor-not-allowed">
+                    Sudah Mendaftar KP
+                </div>
+            {% else %}
+                <a href="{% url 'PendaftaranMahasiswaMBKM:daftar_mbkm' %}" 
+                   class="mt-4 inline-block bg-gray-800 text-white text-center py-2 px-4 rounded hover:bg-gray-700">
+                    Daftar
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const timeString = 
+                now.getHours().toString().padStart(2, '0') + "." +
+                now.getMinutes().toString().padStart(2, '0') + "." +
+                now.getSeconds().toString().padStart(2, '0');
+            document.getElementById("clock").textContent = timeString;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>

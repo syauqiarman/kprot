@@ -8,8 +8,17 @@ def daftar_mbkm(request):
     mahasiswa = request.user.mahasiswa
     semester_aktif = Semester.objects.filter(aktif=True).first()
 
-    if PendaftaranMBKM.objects.filter(mahasiswa=mahasiswa, semester=semester_aktif).exists():
-        return render(request, 'daftar_mbkm_gagal.html', {'message': 'Anda sudah mendaftar MBKM di semester ini.'})
+    # Ambil data pendaftaran yang sudah ada
+    existing_pendaftaran = PendaftaranMBKM.objects.filter(
+        mahasiswa=mahasiswa, 
+        semester=semester_aktif
+    ).first()
+
+    if existing_pendaftaran:
+        return render(request, 'daftar_mbkm_gagal.html', {
+            'message': 'Anda sudah melakukan pendaftaran program MBKM di semester ini.',
+            'pendaftaran': existing_pendaftaran  # Kirim objek pendaftaran
+        })
     
     if request.method == 'POST':
         form = PendaftaranMBKMForm(request.POST, request.FILES, user=request.user)
@@ -29,7 +38,3 @@ def daftar_berhasil(request, pendaftaran_id):
     # Ambil data pendaftaran berdasarkan ID
     pendaftaran = PendaftaranMBKM.objects.get(id=pendaftaran_id)
     return render(request, 'daftarmbkm_berhasil.html', {'pendaftaran': pendaftaran})
-
-@login_required
-def daftar_mbkm_gagal(request):
-    return render(request, 'daftar_mbkm_gagal.html')

@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'database',
     'input_detil',
     'dashboard',
+    'testing',
 ]
 
 MIDDLEWARE = [

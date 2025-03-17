@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,94 +6,180 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pendaftaran MBKM</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    
 </head>
-<body class="bg-gray-100">
-    <div class="container mx-auto p-6">
-        <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
-            <h1 class="text-2xl font-bold text-center mb-6">Form Pendaftaran MBKM</h1>
-            <form method="post" enctype="multipart/form-data" class="space-y-6">
+<body class="bg-gray-100 p-5">
+    <div class="grid grid-cols-2 gap-4 min-h-screen">
+        <!-- Clock Section -->
+        <div class="bg-white p-6 rounded-lg shadow h-fit">
+            <h1 class="text-2xl font-bold mb-2">Clock</h1>
+            <p class="text-lg font-semibold text-gray-600">Day <span id="clock">00.00.00</span></p>
+        </div>
+
+        <!-- Form Section -->
+        <div class="bg-white p-8 rounded-lg shadow col-span-1 row-span-2">
+            <h1 class="text-3xl font-bold text-gray-800 mb-8 border-b-2 border-gray-200 pb-4">Form Pendaftaran MBKM</h1>
+            
+            <form method="post" enctype="multipart/form-data" class="space-y-8">
                 {% csrf_token %}
                 
-                <!-- Biodata Mahasiswa -->
-                <div>
-                    <label for="id_nama" class="block text-sm font-medium text-gray-700">Nama:</label>
-                    {{ form.nama }}
-                </div>
-                <div>
-                    <label for="id_npm" class="block text-sm font-medium text-gray-700">NPM:</label>
-                    {{ form.npm }}
-                </div>
-                <div>
-                    <label for="id_email" class="block text-sm font-medium text-gray-700">Email:</label>
-                    {{ form.email }}
+                <!-- Biodata Section -->
+                <div class="space-y-6">
+                    <h3 class="text-xl font-semibold text-gray-700">Biodata Mahasiswa</h3>
+                    <div class="grid grid-cols-2 gap-6">
+                        <!-- Disabled Fields -->
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Nama Mahasiswa</label>
+                                <div class="p-2 bg-gray-50 rounded border border-gray-200 text-gray-600">
+                                    {{ form.nama }}
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">NPM</label>
+                                <div class="p-2 bg-gray-50 rounded border border-gray-200 text-gray-600">
+                                    {{ form.npm }}
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Email Mahasiswa</label>
+                                <div class="p-2 bg-gray-50 rounded border border-gray-200 text-gray-600">
+                                    {{ form.email }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Semester Info -->
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Semester Aktif</label>
+                                <div class="p-2 bg-gray-50 rounded border border-gray-200 text-gray-600">
+                                    {{ form.semester }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Informasi Semester Aktif -->
-                <div>
-                    <label for="id_semester" class="block text-sm font-medium text-gray-700">Semester Aktif:</label>
-                    {{ form.semester }}
+                <!-- Academic Info -->
+                <div class="space-y-6">
+                    <h3 class="text-xl font-semibold text-gray-700">Informasi Akademik</h3>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-2">{{ form.jumlah_semester.label }}</label>
+                                {{ form.jumlah_semester }}
+                                {% if form.jumlah_semester.errors %}
+                                    <div class="mt-1 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+                                        <p class="text-sm text-red-600 font-medium">{{ form.jumlah_semester.errors }}</p>
+                                    </div>
+                                {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-2">{{ form.sks_diambil.label }}</label>
+                            {{ form.sks_diambil }}
+                            {% if form.sks_diambil.errors %}
+                                <div class="mt-1 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+                                    <p class="text-sm text-red-600 font-medium">{{ form.sks_diambil.errors }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Form Pendaftaran -->
-                <div>
-                    <label for="id_jumlah_semester" class="block text-sm font-medium text-gray-700">Jumlah Semester yang Telah Ditempuh:</label>
-                    {{ form.jumlah_semester }}
-                    {% if form.jumlah_semester.errors %}
-                        <p class="text-sm text-red-500">{{ form.jumlah_semester.errors }}</p>
-                    {% endif %}
-                </div>
-                <div>
-                    <label for="id_sks_diambil" class="block text-sm font-medium text-gray-700">SKS yang Diambil Semester Ini:</label>
-                    {{ form.sks_diambil }}
-                    {% if form.sks_diambil.errors %}
-                        <p class="text-sm text-red-500">{{ form.sks_diambil.errors }}</p>
-                    {% endif %}
-                </div>
-                <div>
-                    <label for="id_program_mbkm" class="block text-sm font-medium text-gray-700">Program MBKM:</label>
-                    {{ form.program_mbkm }}
-                    {% if form.program_mbkm.errors %}
-                        <p class="text-sm text-red-500">{{ form.program_mbkm.errors }}</p>
-                    {% endif %}
-                </div>
-                <div>
-                    <label for="id_estimasi_sks_konversi" class="block text-sm font-medium text-gray-700">Estimasi SKS Konversi:</label>
-                    {{ form.estimasi_sks_konversi }}
-                    {% if form.estimasi_sks_konversi.errors %}
-                        <p class="text-sm text-red-500">{{ form.estimasi_sks_konversi.errors }}</p>
-                    {% endif %}
-                </div>
-                <div>
-                    <label for="id_rencana_lulus_semester_ini" class="block text-sm font-medium text-gray-700">Rencana Lulus Semester Ini:</label>
-                    {{ form.rencana_lulus_semester_ini }}
-                </div>
-                <div>
-                    <label for="id_persetujuan_pa" class="block text-sm font-medium text-gray-700">Upload Persetujuan PA (PDF):</label>
-                    {{ form.persetujuan_pa }}
-                    {% if form.persetujuan_pa.errors %}
-                        <p class="text-sm text-red-500">{{ form.persetujuan_pa.errors }}</p>
-                    {% endif %}
-                </div>
-                <div>
-                    <label for="id_tanggal_persetujuan" class="block text-sm font-medium text-gray-700">Tanggal Persetujuan PA:</label>
-                    {{ form.tanggal_persetujuan }}
-                    {% if form.tanggal_persetujuan.errors %}
-                        <p class="text-sm text-red-500">{{ form.tanggal_persetujuan.errors }}</p>
-                    {% endif %}
-                </div>
-                <div>
-                    <label for="id_pernyataan_komitmen" class="block text-sm font-medium text-gray-700">Saya menyetujui pernyataan komitmen:</label>
-                    {{ form.pernyataan_komitmen }}
-                    {% if form.pernyataan_komitmen.errors %}
-                        <p class="text-sm text-red-500">{{ form.pernyataan_komitmen.errors }}</p>
-                    {% endif %}
+                <!-- Program Details -->
+                <div class="space-y-6">
+                    <h3 class="text-xl font-semibold text-gray-700">Detail Program</h3>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-600 mb-2">{{ form.program_mbkm.label }}</label>
+                            {{ form.program_mbkm }}
+                            {% if form.program_mbkm.errors %}
+                                <div class="mt-1 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+                                    <p class="text-sm text-red-600 font-medium">{{ form.program_mbkm.errors }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-2">{{ form.estimasi_sks_konversi.label }}</label>
+                            {{ form.estimasi_sks_konversi }}
+                            {% if form.estimasi_sks_konversi.errors %}
+                                <div class="mt-1 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+                                    <p class="text-sm text-red-600 font-medium">{{ form.estimasi_sks_konversi.errors }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-2">{{ form.rencana_lulus_semester_ini.label }}</label>
+                            {{ form.rencana_lulus_semester_ini }}
+                        </div>
+                    </div>
                 </div>
 
-                <button type="submit" class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300">
-                    Daftar
+                <!-- Documents Section -->
+                <div class="space-y-6">
+                    <h3 class="text-xl font-semibold text-gray-700">Dokumen Persetujuan</h3>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-2">{{ form.persetujuan_pa.label }}</label>
+                            {{ form.persetujuan_pa }}
+                            {% if form.persetujuan_pa.errors %}
+                                <div class="mt-1 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+                                    <p class="text-sm text-red-600 font-medium">{{ form.persetujuan_pa.errors }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-2">{{ form.tanggal_persetujuan.label }}</label>
+                            {{ form.tanggal_persetujuan }}
+                            {% if form.tanggal_persetujuan.errors %}
+                                <div class="mt-1 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+                                    <p class="text-sm text-red-600 font-medium">{{ form.tanggal_persetujuan.errors }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Agreement -->
+                <div class="space-y-6">
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5 mt-1">
+                            {{ form.pernyataan_komitmen }}
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label class="font-medium text-gray-700">{{ form.pernyataan_komitmen.label }}</label>
+                            {% if form.pernyataan_komitmen.errors %}
+                                <div class="mt-1 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md">
+                                    <p class="text-sm text-red-600 font-medium">{{ form.pernyataan_komitmen.errors }}</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="w-full bg-gray-800 text-white py-3 px-6 rounded-lg hover:bg-gray-700 transition duration-300 text-lg font-medium">
+                    Kirim Pendaftaran
                 </button>
             </form>
         </div>
     </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const timeString = 
+                now.getHours().toString().padStart(2, '0') + "." +
+                now.getMinutes().toString().padStart(2, '0') + "." +
+                now.getSeconds().toString().padStart(2, '0');
+            document.getElementById("clock").textContent = timeString;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
 </body>
 </html>
