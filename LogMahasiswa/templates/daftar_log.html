@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Log</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-5">
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold mb-6">Log Mingguan</h1>
+    <div class="mb-4">
+        Total Jam Kerja Keseluruhan: <strong>{{ total_jam|floatformat:2 }}</strong> jam
+    </div>
+    
+    {% for log in logs %}
+    <div class="border rounded-lg mb-4">
+        <div class="p-4 bg-gray-100 flex justify-between items-center cursor-pointer" 
+             onclick="toggleCollapse('log{{ log.id }}')">
+            <h2 class="font-semibold">Minggu ke-{{ log.minggu_ke }} ({{ log.tanggal_mulai|date:"d M Y" }} - {{ log.tanggal_selesai|date:"d M Y" }})</h2>
+            <span class="text-gray-600">▼</span>
+        </div>
+        
+        <div id="log{{ log.id }}" class="hidden p-4">
+            <div class="mb-4">
+                <h3 class="font-semibold mb-2">Aktivitas Harian</h3>
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="border p-2">Tanggal</th>
+                            <th class="border p-2">Waktu</th>
+                            <th class="border p-2">Deskripsi</th>
+                            <th class="border p-2">Durasi (jam)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for aktivitas in log.aktivitas_harian.all %}
+                        <tr>
+                            <td class="border p-2">{{ aktivitas.tanggal|date:"d M Y" }}</td>
+                            <td class="border p-2">{{ aktivitas.jam_mulai|time:"H:i" }} - {{ aktivitas.jam_selesai|time:"H:i" }}</td>
+                            <td class="border p-2">{{ aktivitas.deskripsi }}</td>
+                            <td class="border p-2 text-center">{{ aktivitas.durasi|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-4">
+                <p>Total Jam Mingguan: <strong>{{ log.total_jam_mingguan|floatformat:2 }}</strong> jam</p>
+                {% if log.disetujui_penyelia is not None %}
+                <p>Status: 
+                    <span class="{% if log.disetujui_penyelia %}text-green-600{% else %}text-red-600{% endif %}">
+                        {{ log.disetujui_penyelia|yesno:"Disetujui,Ditolak" }}
+                    </span>
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+function toggleCollapse(elementId) {
+    const element = document.getElementById(elementId);
+    element.classList.toggle('hidden');
+}
+</script>
+</body>
+</html>

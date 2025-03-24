@@ -26,4 +26,5 @@ urlpatterns = [
     path('inputdetil', include('input_detil.urls')),
     path('', include('dashboard.urls')),
     path('testing/', include('testing.urls')),
+    path('log/', include('LogMahasiswa.urls')),
 ]

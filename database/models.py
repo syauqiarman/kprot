@@ -156,6 +156,61 @@ class PendaftaranMBKM(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+# Tambahkan di bagian bawah database/models.py
+class LogMingguan(models.Model):
+    program_kp = models.ForeignKey(PendaftaranKP, on_delete=models.CASCADE, null=True, blank=True)
+    program_mbkm = models.ForeignKey(PendaftaranMBKM, on_delete=models.CASCADE, null=True, blank=True)
+    minggu_ke = models.PositiveIntegerField()
+    tanggal_mulai = models.DateField()
+    tanggal_selesai = models.DateField()
+    disetujui_penyelia = models.BooleanField(null=True, blank=True)
+    catatan_penyelia = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-tanggal_mulai']
+    
+    def clean(self):
+        # Validasi program
+        if not (self.program_kp or self.program_mbkm):
+            raise ValidationError("Log harus terkait dengan program KP atau MBKM")
+        if self.program_kp and self.program_mbkm:
+            raise ValidationError("Hanya boleh memilih satu program")
+        
+        # Validasi tanggal
+        if self.tanggal_mulai > self.tanggal_selesai:
+            raise ValidationError("Tanggal mulai harus sebelum tanggal selesai")
+        
+    @property
+    def program(self):
+        return self.program_kp or self.program_mbkm
+    
+    @property
+    def total_jam_mingguan(self):
+        return sum(aktivitas.durasi for aktivitas in self.aktivitas_harian.all())
+
+class AktivitasHarian(models.Model):
+    log_mingguan = models.ForeignKey(LogMingguan, on_delete=models.CASCADE, related_name='aktivitas_harian')
+    tanggal = models.DateField()
+    jam_mulai = models.TimeField()
+    jam_selesai = models.TimeField()
+    deskripsi = models.TextField()
+
+    @property
+    def durasi(self):
+        start = datetime.datetime.combine(self.tanggal, self.jam_mulai)
+        end = datetime.datetime.combine(self.tanggal, self.jam_selesai)
+        return (end - start).total_seconds() / 3600  # Dalam jam
+
+    def clean(self):
+        if self.jam_selesai <= self.jam_mulai:
+            raise ValidationError("Jam selesai harus setelah jam mulai")
+        
+        if self.log_mingguan.tanggal_mulai is None or self.log_mingguan.tanggal_selesai is None:
+            raise ValidationError("Log mingguan harus memiliki tanggal mulai dan selesai terlebih dahulu")
+        
+        if not (self.log_mingguan.tanggal_mulai <= self.tanggal <= self.log_mingguan.tanggal_selesai):
+            raise ValidationError("Tanggal aktivitas harus dalam rentang log mingguan")
+        
 ############## Validators that can't be in validators.py ##############
 
 def validate_one_role_user(user):

@@ -1,12 +1,42 @@
-{% block content %}
-<h2>Daftar Semester</h2>
-<ul>
-    {% for semester in semesters %}
-        <li>
-            <a href="{% url 'testing:list_mahasiswa' semester.id %}">
-                {{ semester.nama }} ({{ semester.tahun }})
-            </a>
-        </li>
-    {% endfor %}
-</ul>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Semester</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-5">
+    <div class="grid grid-cols-3 gap-4">
+        <div class="bg-white p-4 rounded-lg shadow">
+            <h2 class="text-xl font-bold">Clock</h2>
+            <p class="mt-2 text-lg font-semibold">Day <span id="clock">00.00.00</span></p>
+        </div>
+
+        <div class="col-span-2 bg-white p-4 rounded-lg shadow">
+            <h2 class="text-xl font-bold mb-4">Daftar Semester</h2>
+            <ul class="divide-y divide-gray-300">
+                {% for semester in semesters %}
+                    <li class="py-3">
+                        <a href="{% url 'testing:list_mahasiswa' semester.id %}" class="text-blue-600 hover:underline font-semibold">
+                            {{ semester.nama }} ({{ semester.tahun }})
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            let now = new Date();
+            let timeString = now.getHours().toString().padStart(2, '0') + ":" + 
+                            now.getMinutes().toString().padStart(2, '0') + ":" + 
+                            now.getSeconds().toString().padStart(2, '0');
+            document.getElementById("clock").innerText = timeString;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>

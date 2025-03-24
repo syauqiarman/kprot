@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'input_detil',
     'dashboard',
     'testing',
+    'LogMahasiswa',
 ]
 
 MIDDLEWARE = [
