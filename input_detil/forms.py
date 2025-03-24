@@ -1,7 +1,105 @@
 from django import forms
-from database.models import PendaftaranKP, Penyelia, Semester, User
+from database.models import PendaftaranMBKM, PendaftaranKP, Penyelia, ProgramMBKM, User, validate_tanggal_mulai_selesai
+from django.core.exceptions import ValidationError
+from database.validators import validate_email_penyelia
 import secrets
-import logging
+
+class InputDetilMBKMForm(forms.ModelForm):
+    class Meta:
+        model = PendaftaranMBKM
+        fields = ['role', 'program_mbkm', 'tanggal_mulai', 'tanggal_selesai']
+
+        widgets = {
+            'tanggal_mulai': forms.DateInput(attrs={'type': 'date'}),
+            'tanggal_selesai': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    mahasiswa_nama = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
+    mahasiswa_npm = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
+    semester = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
+
+    penyelia_nama = forms.CharField(widget=forms.TextInput(), required=True)
+    penyelia_email = forms.EmailField(widget=forms.EmailInput(), required=True)
+    penyelia_perusahaan = forms.CharField(widget=forms.TextInput(), required=True)
+
+    program_mbkm = forms.ModelChoiceField(
+        queryset=ProgramMBKM.objects.all(),
+        widget=forms.RadioSelect(attrs={'class': 'flex space-x-4'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.pendaftaran_mbkm = kwargs.get('instance', None)
+        super().__init__(*args, **kwargs)
+
+        if self.pendaftaran_mbkm:
+            mahasiswa = getattr(self.pendaftaran_mbkm, "mahasiswa", None)
+            semester = getattr(self.pendaftaran_mbkm, "semester", None)
+
+            self.fields['mahasiswa_nama'].initial = getattr(mahasiswa, "nama", "")
+            self.fields['mahasiswa_npm'].initial = getattr(mahasiswa, "npm", "")
+            self.fields['semester'].initial = getattr(semester, "nama", "")
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        # Validate penyelia_email using the validator
+        penyelia_email = cleaned_data.get('penyelia_email')
+        if penyelia_email:
+            try:
+                validate_email_penyelia(penyelia_email)
+            except ValidationError as e:
+                self.add_error('penyelia_email', e)
+
+        # Validate tanggal_mulai and tanggal_selesai using the model validation function
+        try:
+            validate_tanggal_mulai_selesai(self.instance)
+        except ValidationError as e:
+            self.add_error(None, e)  # Add the error to the form's non-field errors
+
+        # Ensure tanggal_mulai is before tanggal_selesai
+        tanggal_mulai = cleaned_data.get('tanggal_mulai')
+        tanggal_selesai = cleaned_data.get('tanggal_selesai')
+        if tanggal_mulai and tanggal_selesai and tanggal_mulai > tanggal_selesai:
+            self.add_error('tanggal_selesai', "Tanggal mulai tidak boleh setelah tanggal selesai.")
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        # Update status_pendaftaran based on completeness
+        required_fields = ["role", "program_mbkm", "penyelia_nama", "penyelia_perusahaan", "penyelia_email", "tanggal_mulai", "tanggal_selesai"]
+        is_complete = all(self.cleaned_data.get(field) for field in required_fields)
+        instance.status_pendaftaran = "Terdaftar" if is_complete else "Menunggu Detil"
+
+        # Create or update Penyelia
+        penyelia_nama = self.cleaned_data.get("penyelia_nama")
+        penyelia_perusahaan = self.cleaned_data.get("penyelia_perusahaan")
+        penyelia_email = self.cleaned_data.get("penyelia_email")
+
+        if penyelia_nama and penyelia_perusahaan and penyelia_email:
+            user2 = User.objects.filter(email=penyelia_email).first()
+
+            if user2:
+                if Penyelia.objects.filter(user=user2).exists():
+                    penyelia = Penyelia.objects.get(user=user2)
+                else:
+                    raise forms.ValidationError("User sudah memiliki role lain dan tidak bisa menjadi Penyelia.")
+            else:
+                user2 = User.objects.create(email=penyelia_email, username=penyelia_email)
+                penyelia = Penyelia.objects.create(
+                    user=user2,
+                    nama=penyelia_nama,
+                    perusahaan=penyelia_perusahaan,
+                    email=penyelia_email
+                )
+
+            instance.penyelia = penyelia
+
+        if commit:
+            instance.save()
+
+        return instance
 
 class InputDetilKPForm(forms.ModelForm):
     class Meta:
@@ -78,26 +176,30 @@ class InputDetilKPForm(forms.ModelForm):
         penyelia_perusahaan = self.cleaned_data.get("penyelia_perusahaan")
         penyelia_email = self.cleaned_data.get("penyelia_email")
 
-        # Check if a User with the email exists; create one if not
-        user2, created = User.objects.get_or_create(
-            email=penyelia_email,
-            defaults={"username": penyelia_email}
-        )
-
         if penyelia_nama and penyelia_perusahaan and penyelia_email:
-            penyelia, created = Penyelia.objects.get_or_create(
-                user= user2,
-                defaults={"nama": penyelia_nama, "perusahaan": penyelia_perusahaan, "email": penyelia_email}
-            )
-            if not created:
-                # Jika penyelia sudah ada, pastikan datanya diperbarui
-                penyelia.nama = penyelia_nama
-                penyelia.perusahaan = penyelia_perusahaan
-                penyelia.email = penyelia_email
-                logger = logging.getLogger(__name__)
-                logger.debug(f"User: {user2}, Role Existing: {user2.role if hasattr(user2, 'role') else 'None'}")
-                penyelia.save()
+            # Cek apakah user dengan email ini sudah ada
+            print("di cek user")
+            user2 = User.objects.filter(email=penyelia_email).first()
 
+            if user2:
+                # Cek apakah user sudah memiliki role lain
+                if Penyelia.objects.filter(user=user2).exists():
+                    penyelia = Penyelia.objects.get(user=user2)
+                else:
+                    raise forms.ValidationError("User sudah memiliki role lain dan tidak bisa menjadi Penyelia.")
+            else:
+                # Jika user belum ada, buat user baru
+                user2 = User.objects.create(email=penyelia_email, username=penyelia_email)
+
+                # Buat Penyelia baru
+                penyelia = Penyelia.objects.create(
+                    user=user2,
+                    nama=penyelia_nama,
+                    perusahaan=penyelia_perusahaan,
+                    email=penyelia_email
+                )
+
+            # Set penyelia ke instance form
             instance.penyelia = penyelia
 
         if commit:

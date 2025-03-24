@@ -8,8 +8,8 @@
 </head>
 <body>
     <div class="container mt-5">
-        <h2 class="text-center mb-4">Input Detail Kerja Praktek</h2>
-        <p>Silakan lengkapi detail pendaftaran kerja praktek Anda.</p>
+        <h2 class="text-center mb-4">Input Detail MBKM Praktek</h2>
+        <p>Silakan lengkapi detail pendaftaran MBKM Anda.</p>
 
         {% if form.errors %}
             <div class="alert alert-danger">
@@ -33,44 +33,57 @@
             
             <div class="mb-3">
                 <label class="form-label">Nama :</label>
-                <input type="text" class="form-control" value="{{ pendaftaran.mahasiswa.nama }}" disabled>
+                <input type="text" class="form-control" value="{{ pendaftaran_mbkm.mahasiswa.nama }}" disabled>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">NPM :</label>
-                <input type="text" class="form-control" value="{{ pendaftaran.mahasiswa.npm }}" disabled>
+                <input type="text" class="form-control" value="{{ pendaftaran_mbkm.mahasiswa.npm }}" disabled>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Semester :</label>
-                <input type="text" class="form-control" value="{{ pendaftaran.semester.nama }}" disabled>
+                <input type="text" class="form-control" value="{{ pendaftaran_mbkm.semester.nama }}" disabled>
             </div>
 
             <div class="mb-3">
-                <label class="form-label">SKS Lulus :</label>
-                <input type="number" class="form-control" value="{{ pendaftaran.sks_lulus }}" disabled>
+                <label for="{{ form.program_mbkm.id_for_label }}" class="form-label">Program MBKM:</label>
+                {{ form.program_mbkm }}
+                {% if form.program_mbkm.errors %}
+                    <div class="text-danger">
+                        {{ form.program_mbkm.errors }}
+                    </div>
+                {% endif %}
             </div>
 
             <div class="mb-3">
                 <label for="{{ form.role.id_for_label }}" class="form-label">Role :</label>
                 {{ form.role }}
-                {{ form.role.errors }}
-            </div>
-
-            <div class="mb-3">
-                <label for="{{ form.total_jam_kerja.id_for_label }}" class="form-label">Total jam kerja :</label>
-                {{ form.total_jam_kerja }}
-                {{ form.total_jam_kerja.errors }}
+                {% if form.role.errors %}
+                    <div class="text-danger">
+                        {{ form.role.errors }}
+                    </div>
+                {% endif %}
             </div>
 
             <div class="mb-3">
                 <label for="{{ form.tanggal_mulai.id_for_label }}" class="form-label">Tanggal mulai :</label>
                 {{ form.tanggal_mulai }}
+                {% if form.tanggal_mulai.errors %}
+                    <div class="text-danger">
+                        {{ form.tanggal_mulai.errors }}
+                    </div>
+                {% endif %}
             </div>
 
             <div class="mb-3">
                 <label for="{{ form.tanggal_selesai.id_for_label }}" class="form-label">Tanggal selesai :</label>
                 {{ form.tanggal_selesai }}
+                {% if form.tanggal_selesai.errors %}
+                    <div class="text-danger">
+                        {{ form.tanggal_selesai.errors }}
+                    </div>
+                {% endif %}
             </div>
 
             <h4>Informasi Penyelia</h4>
@@ -78,16 +91,31 @@
             <div class="mb-3">
                 <label for="{{ form.penyelia_nama.id_for_label }}" class="form-label">Nama penyelia :</label>
                 {{ form.penyelia_nama }}
+                {% if form.penyelia_nama.errors %}
+                    <div class="text-danger">
+                        {{ form.penyelia_nama.errors }}
+                    </div>
+                {% endif %}
             </div>
 
             <div class="mb-3">
                 <label for="{{ form.penyelia_perusahaan.id_for_label }}" class="form-label">Perusahaan :</label>
                 {{ form.penyelia_perusahaan }}
+                {% if form.penyelia_perusahaan.errors %}
+                    <div class="text-danger">
+                        {{ form.penyelia_perusahaan.errors }}
+                    </div>
+                {% endif %}
             </div>
 
             <div class="mb-3">
                 <label for="{{ form.penyelia_email.id_for_label }}" class="form-label">Email penyelia :</label>
                 {{ form.penyelia_email }}
+                {% if form.penyelia_email.errors %}
+                    <div class="text-danger">
+                        {{ form.penyelia_email.errors }}
+                    </div>
+                {% endif %}
             </div>
 
             <button type="submit" class="btn btn-primary w-100">Simpan</button>

@@ -6,11 +6,12 @@ class PendaftaranMBKMForm(forms.ModelForm):
     nama = forms.CharField(disabled=True, required=False, label="Nama Mahasiswa")
     npm = forms.CharField(disabled=True, required=False, label="NPM")
     email = forms.EmailField(disabled=True, required=False, label="Email Mahasiswa")
+    prodi = forms.CharField(disabled=True, required=False, label="Program Studi")
 
     class Meta:
         model = PendaftaranMBKM
         fields = [
-            'nama', 'npm', 'email',
+            'nama', 'npm', 'email', 'prodi',
             'semester', 'jumlah_semester', 'sks_diambil', 'program_mbkm',
             'estimasi_sks_konversi', 'rencana_lulus_semester_ini',
             'persetujuan_pa', 'tanggal_persetujuan', 'pernyataan_komitmen'
@@ -61,7 +62,8 @@ class PendaftaranMBKMForm(forms.ModelForm):
             self.fields['nama'].initial = mahasiswa.nama
             self.fields['npm'].initial = mahasiswa.npm
             self.fields['email'].initial = mahasiswa.email
-        
+            self.fields['prodi'].initial = mahasiswa.prodi
+            
         # Set nilai default untuk semester (semester yang aktif)
         semester_aktif = Semester.objects.filter(aktif=True).first()
         if semester_aktif:
