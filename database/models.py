@@ -156,37 +156,64 @@ class PendaftaranMBKM(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
-# Tambahkan di bagian bawah database/models.py
 class LogMingguan(models.Model):
-    program_kp = models.ForeignKey(PendaftaranKP, on_delete=models.CASCADE, null=True, blank=True)
-    program_mbkm = models.ForeignKey(PendaftaranMBKM, on_delete=models.CASCADE, null=True, blank=True)
-    minggu_ke = models.PositiveIntegerField()
+    STATUS_PERSETUJUAN = [
+        ('pending', 'Pending'),
+        ('disetujui', 'Disetujui'),
+        ('ditolak', 'Ditolak'),
+    ]
+    
+    pendaftaran_kp = models.ForeignKey('PendaftaranKP', on_delete=models.CASCADE, null=True, blank=True)
+    pendaftaran_mbkm = models.ForeignKey('PendaftaranMBKM', on_delete=models.CASCADE, null=True, blank=True)
     tanggal_mulai = models.DateField()
     tanggal_selesai = models.DateField()
-    disetujui_penyelia = models.BooleanField(null=True, blank=True)
+    status_persetujuan = models.CharField(max_length=20, choices=STATUS_PERSETUJUAN, default='pending')
     catatan_penyelia = models.TextField(blank=True, null=True)
     
     class Meta:
-        ordering = ['-tanggal_mulai']
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    models.Q(pendaftaran_kp__isnull=False, pendaftaran_mbkm__isnull=True) |
+                    models.Q(pendaftaran_kp__isnull=True, pendaftaran_mbkm__isnull=False)
+                ),
+                name='hanya_satu_pendaftaran'
+            )
+        ]
     
     def clean(self):
-        # Validasi program
-        if not (self.program_kp or self.program_mbkm):
-            raise ValidationError("Log harus terkait dengan program KP atau MBKM")
-        if self.program_kp and self.program_mbkm:
-            raise ValidationError("Hanya boleh memilih satu program")
+        super().clean()
+        if not (self.pendaftaran_kp or self.pendaftaran_mbkm):
+            raise ValidationError("Log harus terkait dengan Pendaftaran KP atau MBKM.")
+        if self.pendaftaran_kp and self.pendaftaran_mbkm:
+            raise ValidationError("Log hanya bisa terkait dengan satu program (KP atau MBKM).")
         
-        # Validasi tanggal
+        program = self.pendaftaran_kp or self.pendaftaran_mbkm
+        if program.status_pendaftaran != 'Terdaftar':
+            raise ValidationError("Program harus dalam status 'Terdaftar' untuk membuat log.")
+        
         if self.tanggal_mulai > self.tanggal_selesai:
-            raise ValidationError("Tanggal mulai harus sebelum tanggal selesai")
+            raise ValidationError("Tanggal mulai tidak boleh setelah tanggal selesai.")
         
+        existing_logs = LogMingguan.objects.filter(
+            models.Q(pendaftaran_kp=program) | models.Q(pendaftaran_mbkm=program),
+            tanggal_mulai__lte=self.tanggal_selesai,
+            tanggal_selesai__gte=self.tanggal_mulai
+        ).exclude(pk=self.pk)
+        
+        if existing_logs.exists():
+            raise ValidationError("Periode log mingguan tidak boleh tumpang tindih dengan log lainnya.")
+
     @property
     def program(self):
-        return self.program_kp or self.program_mbkm
+        return self.pendaftaran_kp or self.pendaftaran_mbkm
     
     @property
     def total_jam_mingguan(self):
         return sum(aktivitas.durasi for aktivitas in self.aktivitas_harian.all())
+    
+    def __str__(self):
+        return f"Log Mingguan {self.tanggal_mulai} - {self.tanggal_selesai}"
 
 class AktivitasHarian(models.Model):
     log_mingguan = models.ForeignKey(LogMingguan, on_delete=models.CASCADE, related_name='aktivitas_harian')
@@ -194,22 +221,24 @@ class AktivitasHarian(models.Model):
     jam_mulai = models.TimeField()
     jam_selesai = models.TimeField()
     deskripsi = models.TextField()
-
-    @property
-    def durasi(self):
-        start = datetime.datetime.combine(self.tanggal, self.jam_mulai)
-        end = datetime.datetime.combine(self.tanggal, self.jam_selesai)
-        return (end - start).total_seconds() / 3600  # Dalam jam
-
+    
     def clean(self):
-        if self.jam_selesai <= self.jam_mulai:
-            raise ValidationError("Jam selesai harus setelah jam mulai")
-        
-        if self.log_mingguan.tanggal_mulai is None or self.log_mingguan.tanggal_selesai is None:
-            raise ValidationError("Log mingguan harus memiliki tanggal mulai dan selesai terlebih dahulu")
+        super().clean()
+        if self.jam_mulai >= self.jam_selesai:
+            raise ValidationError("Jam mulai harus sebelum jam selesai.")
         
         if not (self.log_mingguan.tanggal_mulai <= self.tanggal <= self.log_mingguan.tanggal_selesai):
-            raise ValidationError("Tanggal aktivitas harus dalam rentang log mingguan")
+            raise ValidationError("Tanggal aktivitas harus dalam periode log mingguan.")
+    
+    @property
+    def durasi(self):
+        start = datetime.combine(self.tanggal, self.jam_mulai)
+        end = datetime.combine(self.tanggal, self.jam_selesai)
+        delta = end - start
+        return delta.total_seconds() / 3600
+    
+    def __str__(self):
+        return f"Aktivitas pada {self.tanggal}"
         
 ############## Validators that can't be in validators.py ##############
 
