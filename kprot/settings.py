@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'main',
     'input_detil',
+    'lihat_laporan_kegiatan',
 ]
 
 MIDDLEWARE = [

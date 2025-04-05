@@ -1,9 +1,26 @@
 from django.db import models
 from django.contrib.auth.models import User
-from datetime import datetime
+from datetime import datetime, date
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils.timezone import make_aware
 
-from .validators import *
+import input_detil.validators as v
+
+MENUNGGU_PERSETUJUAN_PA = "Menunggu Persetujuan PA"
+MENUNGGU_VERIFIKASI_DOSEN = "Menunggu Verifikasi Dosen"
+MENUNGGU_DETIL = "Menunggu Detil"
+TERDAFTAR = "Terdaftar"
+
+PERLU_REVISI = "Perlu Revisi"
+DIBERIKAN_KE_PERPUSTAKAAN = "Sudah Bisa Diberikan ke Perpustakaan"
+
+PERSETUJUAN_CHOICES = [
+    ("-", "-"),
+    ("Disetujui", "Disetujui"),
+    ("Ditolak", "Ditolak"),
+]
 
 ############################# Abstract models #############################
 
@@ -58,41 +75,77 @@ class Mahasiswa(OneRoleUser):
     pa = models.ForeignKey(PembimbingAkademik, on_delete=models.CASCADE, blank=True, null=True)
 
 class Penyelia(OneRoleUser):
-    email = models.EmailField(unique=True, validators=[validate_email_penyelia])
+    email = models.EmailField(unique=True, validators=[v.validate_email_penyelia])
     perusahaan = models.CharField(max_length=255)
+    is_active = models.BooleanField(
+        _('active'),
+        default=True,
+        help_text=_('Designates whether this user should be treated as active.')
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    invitation_token = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text=_('Token for one-time password setup link.')
+    )
+
+    class Meta:
+        verbose_name = _('penyelia')
+        verbose_name_plural = _('penyelia')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.nama} ({self.perusahaan})"
+
+    def get_full_name(self):
+        return self.nama
+
+    def get_short_name(self):
+        return self.nama.split()[0] if self.nama else self.email
 
 class Semester(models.Model):
     nama = models.CharField(max_length=16, unique=True)
-    gasal_genap = models.CharField(max_length=5)  
+    gasal_genap = models.CharField(max_length=5, choices=[('Gasal', 'Gasal'), ('Genap', 'Genap')])  
     tahun = models.IntegerField()
     aktif = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.nama
 
 class ProgramMBKM(models.Model):
     nama = models.CharField(max_length=255)
     minimum_sks = models.IntegerField()
     maksimum_sks = models.IntegerField()
+    
+    def __str__(self):
+        return self.nama
+
+    def __str__(self):
+        return self.nama
 
 class PendaftaranKP(models.Model):
     mahasiswa = models.ForeignKey(Mahasiswa, on_delete=models.CASCADE)
     semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
-    jumlah_semester = models.IntegerField(validators=[validate_jumlah_semester_kp])
-    sks_lulus = models.IntegerField(validators=[validate_sks_lulus])
+    jumlah_semester = models.IntegerField(validators=[v.validate_jumlah_semester_kp])
+    sks_lulus = models.IntegerField(validators=[v.validate_sks_lulus])
     penyelia = models.ForeignKey(Penyelia, on_delete=models.CASCADE, null=True, blank=True)
-    role = models.CharField(max_length=255, null=True, blank=True)
-    total_jam_kerja = models.IntegerField(validators=[validate_total_jam_kerja], null=True, blank=True)
+    role = models.CharField(max_length=255, blank=True, default="")
+    total_jam_kerja = models.IntegerField(validators=[v.validate_total_jam_kerja], null=True, blank=True)
     tanggal_mulai = models.DateField(null=True, blank=True)
     tanggal_selesai = models.DateField(null=True, blank=True)
-    pernyataan_komitmen = models.BooleanField(default=False, validators=[validate_pernyataan_komitmen])
-    status_pendaftaran = models.CharField(max_length=50, default="Menunggu Detil", choices=[
-            ('Menunggu Detil', 'Menunggu Detil'),
-            ('Terdaftar', 'Terdaftar')
+    pernyataan_komitmen = models.BooleanField(default=False, validators=[v.validate_pernyataan_komitmen])
+    status_pendaftaran = models.CharField(max_length=50, default=MENUNGGU_DETIL, choices=[
+            (MENUNGGU_DETIL, MENUNGGU_DETIL),
+            (TERDAFTAR, TERDAFTAR)
     ])
     history = models.JSONField()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.pk:
-            self.history = [datetime.now().isoformat()]
+            self.history = [make_aware(datetime.now()).isoformat()]
 
     def clean(self):
         super().clean()
@@ -106,31 +159,31 @@ class PendaftaranKP(models.Model):
 class PendaftaranMBKM(models.Model):
     mahasiswa = models.ForeignKey(Mahasiswa, on_delete=models.CASCADE)
     semester = models.ForeignKey(Semester, on_delete=models.CASCADE)
-    jumlah_semester = models.IntegerField(validators=[validate_jumlah_semester_mbkm])
-    sks_diambil = models.IntegerField(validators=[validate_sks_diambil], blank=True, null=True)
+    jumlah_semester = models.IntegerField(validators=[v.validate_jumlah_semester_mbkm])
+    sks_diambil = models.IntegerField(validators=[v.validate_sks_diambil], blank=True, null=True)
     request_status_merdeka = models.BooleanField(default=False)
     rencana_lulus_semester_ini = models.BooleanField(default=False)
     program_mbkm = models.ForeignKey(ProgramMBKM, on_delete=models.CASCADE)
     penyelia = models.ForeignKey(Penyelia, on_delete=models.CASCADE, blank=True, null=True)
-    role = models.CharField(max_length=255, blank=True, null=True)
+    role = models.CharField(max_length=255, blank=True, default="")
     estimasi_sks_konversi = models.IntegerField(blank=True, null=True)
     persetujuan_pa = models.FileField(upload_to='persetujuan_pa/', blank=True, null=True)
     tanggal_persetujuan = models.DateField(blank=True, null=True)
     tanggal_mulai = models.DateField(blank=True, null=True)
     tanggal_selesai = models.DateField(blank=True, null=True)
-    pernyataan_komitmen = models.BooleanField(default=False, validators=[validate_pernyataan_komitmen])
-    status_pendaftaran = models.CharField(max_length=50, default="Menunggu Persetujuan PA", choices=[
-            ('Menunggu Persetujuan PA', 'Menunggu Persetujuan PA'),
+    pernyataan_komitmen = models.BooleanField(default=False, validators=[v.validate_pernyataan_komitmen])
+    status_pendaftaran = models.CharField(max_length=50, default=MENUNGGU_PERSETUJUAN_PA, choices=[
+            (MENUNGGU_PERSETUJUAN_PA, MENUNGGU_PERSETUJUAN_PA),
             ('Ditolak PA', 'Ditolak PA'),
             ('Menunggu Persetujuan Kaprodi', 'Menunggu Persetujuan Kaprodi'),
             ('Ditolak Kaprodi', 'Ditolak Kaprodi'),
-            ('Menunggu Verifikasi Dosen', 'Menunggu Verifikasi Dosen'),
+            (MENUNGGU_VERIFIKASI_DOSEN, MENUNGGU_VERIFIKASI_DOSEN),
             ('Ditolak Dosen', 'Ditolak Dosen'),
-            ('Menunggu Detil', 'Menunggu Detil'),
-            ('Terdaftar', 'Terdaftar'),
+            (MENUNGGU_DETIL, MENUNGGU_DETIL),
+            (TERDAFTAR, TERDAFTAR),
         ]
     )
-    feedback_penolakan = models.TextField(blank=True, null=True)
+    feedback_penolakan = models.TextField(blank=True, default="")
     history = models.JSONField()
     file_timestamp = models.DateTimeField(null=True, blank=True)
 
@@ -138,15 +191,12 @@ class PendaftaranMBKM(models.Model):
         super().__init__(*args, **kwargs)
         self.request_status_merdeka = self.sks_diambil == 0
         if not self.pk:
-            if self.persetujuan_pa:
-                self.status_pendaftaran = "Menunggu Verifikasi Dosen"
-            else:
-                self.status_pendaftaran = "Menunggu Persetujuan PA"
-            self.history = [datetime.now().isoformat()]
+            self.history = [make_aware(datetime.now()).isoformat()]
+            self.status_pendaftaran = MENUNGGU_VERIFIKASI_DOSEN if self.persetujuan_pa else MENUNGGU_PERSETUJUAN_PA
 
     def clean(self):
         super().clean()
-        validate_estimasi_sks_konversi(self) 
+        v.validate_estimasi_sks_konversi(self) 
         validate_tanggal_mulai_selesai(self)
         validate_jika_terdaftar(self)
 
@@ -154,11 +204,98 @@ class PendaftaranMBKM(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+class Laporan(models.Model):
+    file_laporan = models.FileField(upload_to="laporan/")
+    status_persetujuan_penyelia = models.CharField(max_length=50, choices=PERSETUJUAN_CHOICES, default="-")
+    feedback_penolakan_penyelia = models.TextField(blank=True, null=True)
+    feedback_dosen = models.TextField(blank=True, null=True)
+    history = models.JSONField(default=dict)
+    file_timestamp = models.DateTimeField()
+  
+    class Meta:
+        abstract = True
+
+class LaporanKP(Laporan):
+    pendaftaran = models.ForeignKey(PendaftaranKP, on_delete=models.CASCADE)
+    status = models.CharField(
+        max_length=50,
+        choices=[
+            ("Belum Dinilai", "Belum Dinilai"),
+            (PERLU_REVISI, PERLU_REVISI),
+            ("Sudah Dinilai Namun Belum Sesuai Format", "Sudah Dinilai Namun Belum Sesuai Format"),
+            (DIBERIKAN_KE_PERPUSTAKAAN, DIBERIKAN_KE_PERPUSTAKAAN),
+        ],
+        default="Belum Dinilai",
+    )
+    nilai_abstrak = models.PositiveSmallIntegerField(null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(4)])
+    nilai_isi = models.PositiveSmallIntegerField(null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(4)])
+    nilai_lampiran = models.PositiveSmallIntegerField(null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(4)])
+    nilai_konsistensi = models.PositiveSmallIntegerField(null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(4)])
+    nilai_kerapihan = models.PositiveSmallIntegerField(null=True, blank=True, validators=[MinValueValidator(1), MaxValueValidator(4)])
+    nilai = models.FloatField(null=True, blank=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.pk:
+            self.history = [make_aware(datetime.now()).isoformat()]
+            self.file_timestamp = make_aware(datetime.now()).isoformat()
+
+    def clean(self):
+        super().clean()
+        v.determine_status_laporan_kp(self)
+
+        # If not a new instance
+        if self.pk:  
+            old_instance = LaporanKP.objects.get(pk=self.pk)
+            v.validate_update_status_file_laporan_kp(self, old_instance)
+            v.validate_nilai_changes_laporan_kp(self, old_instance)
+            self.history.append(make_aware(datetime.now()).isoformat())
+
+        v.validate_update_status_persetujuan_penyelia_laporan_kp(self)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)                      
+
+class LaporanMBKM(Laporan):
+    pendaftaran = models.ForeignKey(PendaftaranMBKM, on_delete=models.CASCADE)
+    status = models.CharField(
+        max_length=50,
+        choices=[
+            ("Belum Dicek", "Belum Dicek"),
+            (PERLU_REVISI, PERLU_REVISI),
+            (DIBERIKAN_KE_PERPUSTAKAAN, DIBERIKAN_KE_PERPUSTAKAAN),
+        ],
+        default="Belum Dicek",
+    )
+    sks_klaim = models.IntegerField()
+    status_persetujuan_dosen = models.CharField(max_length=50, choices=PERSETUJUAN_CHOICES, default="-")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.pk:
+            self.history = [make_aware(datetime.now()).isoformat()]
+            self.file_timestamp = make_aware(datetime.now()).isoformat()
+
+    def clean(self):
+        if self.pk:  
+            old_instance = LaporanMBKM.objects.get(pk=self.pk)
+            v.validate_update_status_file_laporan_mbkm(self, old_instance)
+            self.history.append(make_aware(datetime.now()).isoformat())
+          
+        v.validate_update_status_persetujuan_penyelia_laporan_mbkm(self)
+        v.validate_update_status_persetujuan_dosen_laporan_mbkm(self)
+        v.validate_sks_klaim_laporan_mbkm(self)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)  
+
 ############## Validators that can't be in validators.py ##############
 
 def validate_one_role_user(user):
     user_has_any_role = (
-        Mahasiswa.objects.filter(user=user).exists() or
+        Mahasiswa.objects.filter(user=user).exists() and
         Penyelia.objects.filter(user=user).exists() or
         Dosen.objects.filter(user=user).exists() or
         PembimbingAkademik.objects.filter(user=user).exists() or
@@ -173,7 +310,7 @@ def validate_multi_roles_user(user):
         raise ValidationError(_("User sudah memiliki role Mahasiswa."))
     elif Penyelia.objects.filter(user=user).exists():
         raise ValidationError(_("User sudah memiliki role Penyelia."))
-    
+  
 def validate_tanggal_mulai_selesai(instance):
     # Ensure tanggal_mulai and tanggal_selesai are not None before validation
     if instance.tanggal_mulai is None or instance.tanggal_selesai is None:
@@ -188,11 +325,8 @@ def validate_tanggal_mulai_selesai(instance):
                                 "Gasal": date(instance.semester.tahun, 10, 31)},
                 PendaftaranMBKM: {"Genap": date(instance.semester.tahun, 6, 30),
                                   "Gasal": date(instance.semester.tahun+1, 1, 31)}}
-    try:
-        start_date = start_date[instance.__class__][instance.semester.gasal_genap]
-        end_date = end_date[instance.__class__][instance.semester.gasal_genap]
-    except KeyError:
-        raise ValidationError(_("Semester harus bernilai 'Gasal' atau 'Genap'."))
+    start_date = start_date[instance.__class__][instance.semester.gasal_genap]
+    end_date = end_date[instance.__class__][instance.semester.gasal_genap]
     
     # Validate tanggal_mulai and tanggal_selesai within the correct semester range
     if not (start_date <= instance.tanggal_mulai <= end_date):
