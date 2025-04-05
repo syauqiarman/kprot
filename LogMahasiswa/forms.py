@@ -1,48 +1,38 @@
 from django import forms
-from django.forms import inlineformset_factory
 from database.models import LogMingguan, AktivitasHarian
-from django.core.exceptions import ValidationError
-from database.models import PendaftaranKP, PendaftaranMBKM
+from django.forms import inlineformset_factory
 
 class LogMingguanForm(forms.ModelForm):
+    nama = forms.CharField(disabled=True, required=False)
+    npm = forms.CharField(disabled=True, required=False)
+    tempat_magang = forms.CharField(disabled=True, required=False)
+    role_magang = forms.CharField(disabled=True, required=False)
+
     class Meta:
         model = LogMingguan
         fields = ['tanggal_mulai', 'tanggal_selesai']
-        widgets = {
-            'tanggal_mulai': forms.DateInput(attrs={'type': 'date'}),
-            'tanggal_selesai': forms.DateInput(attrs={'type': 'date'}),
-        }
-    
+        
     def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop('user', None)
+        self.program = kwargs.pop('program', None)
         super().__init__(*args, **kwargs)
-        self.program_kp = None
-        self.program_mbkm = None
-        if self.user and hasattr(self.user, 'mahasiswa'):
-            self.program_kp = PendaftaranKP.objects.filter(
-                mahasiswa=self.user.mahasiswa,
-                status_pendaftaran='Terdaftar'
-            ).first()
-            self.program_mbkm = PendaftaranMBKM.objects.filter(
-                mahasiswa=self.user.mahasiswa,
-                status_pendaftaran='Terdaftar'
-            ).first()
+        if self.program:
+            mahasiswa = self.program.mahasiswa
+            self.fields['nama'].initial = mahasiswa.nama
+            self.fields['npm'].initial = mahasiswa.npm
+            self.fields['tempat_magang'].initial = self.program.penyelia.perusahaan
+            self.fields['role_magang'].initial = self.program.role
     
     def clean(self):
         cleaned_data = super().clean()
-        if not (self.program_kp or self.program_mbkm):
-            raise ValidationError("Anda belum terdaftar di program KP atau MBKM yang aktif.")
+        tanggal_mulai = cleaned_data.get('tanggal_mulai')
+        tanggal_selesai = cleaned_data.get('tanggal_selesai')
+
+        if tanggal_mulai and tanggal_selesai:
+            if tanggal_mulai > tanggal_selesai:
+                self.add_error('tanggal_mulai', "Tanggal mulai tidak boleh setelah tanggal selesai")
+                self.add_error('tanggal_selesai', "Tanggal selesai tidak boleh sebelum tanggal mulai")
+
         return cleaned_data
-    
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        if self.program_kp:
-            instance.pendaftaran_kp = self.program_kp
-        elif self.program_mbkm:
-            instance.pendaftaran_mbkm = self.program_mbkm
-        if commit:
-            instance.save()
-        return instance
 
 class AktivitasHarianForm(forms.ModelForm):
     class Meta:
@@ -52,10 +42,12 @@ class AktivitasHarianForm(forms.ModelForm):
             'tanggal': forms.DateInput(attrs={'type': 'date'}),
             'jam_mulai': forms.TimeInput(attrs={'type': 'time'}),
             'jam_selesai': forms.TimeInput(attrs={'type': 'time'}),
-            'deskripsi': forms.Textarea(attrs={'rows': 2}),
         }
 
 AktivitasHarianFormSet = inlineformset_factory(
-    LogMingguan, AktivitasHarian, form=AktivitasHarianForm,
-    extra=1, can_delete=True, can_delete_extra=True
+    LogMingguan,
+    AktivitasHarian,
+    form=AktivitasHarianForm,
+    extra=7,  # Default untuk 1 minggu
+    can_delete=False
 )
