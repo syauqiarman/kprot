@@ -156,7 +156,6 @@ class PendaftaranMBKM(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
-# Tambahkan class ini ke models.py
 class LogMingguan(models.Model):
     STATUS_PERSETUJUAN = [
         ('pending', 'Pending'),
@@ -170,7 +169,7 @@ class LogMingguan(models.Model):
     tanggal_selesai = models.DateField()
     status_persetujuan = models.CharField(max_length=20, choices=STATUS_PERSETUJUAN, default='pending')
     alasan_penolakan = models.TextField(blank=True, null=True)
-    total_jam = models.IntegerField(default=0)
+    total_jam = models.FloatField(default=0.0)
     
     class Meta:
         constraints = [
@@ -189,9 +188,10 @@ class LogMingguan(models.Model):
     
     def calculate_total_jam(self):
         return sum(aktivitas.durasi for aktivitas in self.aktivitas_harian.all())
-    
+        
     def __str__(self):
         return f"Log {self.tanggal_mulai} - {self.tanggal_selesai}"
+    
 
 class AktivitasHarian(models.Model):
     log_mingguan = models.ForeignKey(LogMingguan, on_delete=models.CASCADE, related_name='aktivitas_harian')
@@ -204,7 +204,8 @@ class AktivitasHarian(models.Model):
     def durasi(self):
         start = datetime.combine(self.tanggal, self.jam_mulai)
         end = datetime.combine(self.tanggal, self.jam_selesai)
-        return (end - start).seconds // 3600
+        delta = end - start
+        return delta.total_seconds() / 3600 
         
 ############## Validators that can't be in validators.py ##############
 

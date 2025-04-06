@@ -25,6 +25,7 @@ class LogFormTest(TestCase):
             estimasi_sks_konversi=10,
             tanggal_mulai=date(2024, 7, 2),
             tanggal_selesai=date(2025, 1, 30),
+            status_pendaftaran="Terdaftar",
             pernyataan_komitmen=True
         )
 
@@ -69,3 +70,155 @@ class LogFormTest(TestCase):
         }
         formset = AktivitasHarianFormSet(data, instance=log)
         self.assertTrue(formset.is_valid())
+    
+    def test_valid_log_with_multiple_activities(self):
+        log = LogMingguan.objects.create(
+            pendaftaran_mbkm=self.pendaftaran_mbkm,
+            tanggal_mulai='2024-07-02',
+            tanggal_selesai='2024-07-08'
+        )
+        
+        data = {
+            'aktivitas_harian-TOTAL_FORMS': '3',
+            'aktivitas_harian-INITIAL_FORMS': '0',
+            'aktivitas_harian-0-tanggal': '2024-07-02',
+            'aktivitas_harian-0-jam_mulai': '08:00',
+            'aktivitas_harian-0-jam_selesai': '12:00',
+            'aktivitas_harian-0-deskripsi': 'Membuat modul A',
+            'aktivitas_harian-1-tanggal': '2024-07-03',
+            'aktivitas_harian-1-jam_mulai': '09:00',
+            'aktivitas_harian-1-jam_selesai': '17:00',
+            'aktivitas_harian-1-deskripsi': 'Implementasi fitur X',
+            'aktivitas_harian-2-tanggal': '2024-07-04',
+            'aktivitas_harian-2-jam_mulai': '10:00',
+            'aktivitas_harian-2-jam_selesai': '15:00',
+            'aktivitas_harian-2-deskripsi': 'Bug fixing'
+        }
+        
+        formset = AktivitasHarianFormSet(data, instance=log)
+        self.assertTrue(formset.is_valid())
+
+    def test_activity_outside_log_date_range(self):
+        log = LogMingguan.objects.create(
+            pendaftaran_mbkm=self.pendaftaran_mbkm,
+            tanggal_mulai='2024-07-02',
+            tanggal_selesai='2024-07-08'
+        )
+        
+        data = {
+            'aktivitas_harian-TOTAL_FORMS': '1',
+            'aktivitas_harian-INITIAL_FORMS': '0',
+            'aktivitas_harian-0-tanggal': '2024-07-09',  # Di luar range log
+            'aktivitas_harian-0-jam_mulai': '08:00',
+            'aktivitas_harian-0-jam_selesai': '17:00',
+            'aktivitas_harian-0-deskripsi': 'Aktivitas invalid'
+        }
+        
+        formset = AktivitasHarianFormSet(data, instance=log)
+        self.assertFalse(formset.is_valid())
+        self.assertIn('tanggal', formset.forms[0].errors)
+
+    def test_overlapping_log_dates(self):
+        # Log pertama yang valid
+        LogMingguan.objects.create(
+            pendaftaran_mbkm=self.pendaftaran_mbkm,
+            tanggal_mulai='2024-07-02',
+            tanggal_selesai='2024-07-08'
+        )
+        
+        # Log kedua yang overlapping
+        form_data = {
+            'tanggal_mulai': '2024-07-05',
+            'tanggal_selesai': '2024-07-12'
+        }
+        
+        form = LogMingguanForm(program=self.pendaftaran_mbkm, data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_invalid_activity_time_range(self):
+        log = LogMingguan.objects.create(
+            pendaftaran_mbkm=self.pendaftaran_mbkm,
+            tanggal_mulai='2024-07-02',
+            tanggal_selesai='2024-07-08'
+        )
+        
+        data = {
+            'aktivitas_harian-TOTAL_FORMS': '1',
+            'aktivitas_harian-INITIAL_FORMS': '0',
+            'aktivitas_harian-0-tanggal': '2024-07-02',
+            'aktivitas_harian-0-jam_mulai': '17:00',  # Waktu mulai > selesai
+            'aktivitas_harian-0-jam_selesai': '08:00',
+            'aktivitas_harian-0-deskripsi': 'Waktu invalid'
+        }
+        
+        formset = AktivitasHarianFormSet(data, instance=log)
+        self.assertFalse(formset.is_valid())
+        self.assertIn('jam_mulai', formset.forms[0].errors)
+
+    def test_empty_activity_description(self):
+        log = LogMingguan.objects.create(
+            pendaftaran_mbkm=self.pendaftaran_mbkm,
+            tanggal_mulai='2024-07-02',
+            tanggal_selesai='2024-07-08'
+        )
+        
+        data = {
+            'aktivitas_harian-TOTAL_FORMS': '1',
+            'aktivitas_harian-INITIAL_FORMS': '0',
+            'aktivitas_harian-0-tanggal': '2024-07-02',
+            'aktivitas_harian-0-jam_mulai': '08:00',
+            'aktivitas_harian-0-jam_selesai': '17:00',
+            'aktivitas_harian-0-deskripsi': ''  # Deskripsi kosong
+        }
+        
+        formset = AktivitasHarianFormSet(data, instance=log)
+        self.assertFalse(formset.is_valid())
+        self.assertIn('deskripsi', formset.forms[0].errors)
+
+    def test_log_creation_without_program_approval(self):
+        # Pastikan semua field required diisi
+        pendaftaran_invalid = PendaftaranMBKM.objects.create(
+            mahasiswa=self.mahasiswa,
+            semester=self.semester_gasal,
+            jumlah_semester=7,
+            sks_diambil=12,
+            program_mbkm=self.program_mbkm,
+            penyelia=self.penyelia,
+            role="Software Engineer",
+            estimasi_sks_konversi=10,
+            tanggal_mulai=date(2024, 7, 2),
+            tanggal_selesai=date(2025, 1, 30),
+            pernyataan_komitmen=True,
+            status_pendaftaran="Menunggu Persetujuan PA"  # Status tidak memenuhi syarat
+        )
+        
+        form_data = {
+            'tanggal_mulai': '2024-07-02',
+            'tanggal_selesai': '2024-07-08'
+        }
+        form = LogMingguanForm(program=pendaftaran_invalid, data=form_data)
+        self.assertFalse(form.is_valid())
+        
+    def test_log_dates_outside_program_range(self):
+        # Tanggal di luar range program MBKM
+        form_data = {
+            'tanggal_mulai': '2024-06-25',
+            'tanggal_selesai': '2024-07-01'
+        }
+        
+        form = LogMingguanForm(program=self.pendaftaran_mbkm, data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_disabled_fields_content(self):
+        form = LogMingguanForm(program=self.pendaftaran_mbkm)
+        
+        self.assertEqual(form.fields['nama'].initial, self.mahasiswa.nama)
+        self.assertEqual(form.fields['npm'].initial, self.mahasiswa.npm)
+        self.assertEqual(
+            form.fields['tempat_magang'].initial, 
+            self.penyelia.perusahaan
+        )
+        self.assertEqual(
+            form.fields['role_magang'].initial, 
+            self.pendaftaran_mbkm.role
+        )

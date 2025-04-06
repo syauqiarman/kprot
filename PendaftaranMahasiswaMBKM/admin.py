@@ -1,6 +1,6 @@
 from django.contrib import admin
-
-from database.models import Mahasiswa, ProgramMBKM, PendaftaranMBKM, Semester, Penyelia, Dosen, PembimbingAkademik, Kaprodi, ManajemenFakultas, PendaftaranKP
+from django.contrib.admin import SimpleListFilter
+from database.models import Mahasiswa, ProgramMBKM, PendaftaranMBKM, Semester, Penyelia, Dosen, PembimbingAkademik, Kaprodi, ManajemenFakultas, PendaftaranKP, LogMingguan, AktivitasHarian
 
 # Mendaftarkan semua model ke admin
 @admin.register(Mahasiswa)
@@ -56,3 +56,51 @@ class KaprodiAdmin(admin.ModelAdmin):
 class ManajemenFakultasAdmin(admin.ModelAdmin):
     list_display = ('nama', 'email', 'user')
     search_fields = ('nama', 'email')
+
+class ProgramTypeFilter(SimpleListFilter):
+    """Filter kustom untuk membedakan tipe program KP atau MBKM pada LogMingguan"""
+    title = 'Tipe Program'
+    parameter_name = 'program_type'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('kp', 'Kerja Praktek (KP)'),
+            ('mbkm', 'MBKM'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'kp':
+            return queryset.filter(pendaftaran_kp__isnull=False)
+        elif self.value() == 'mbkm':
+            return queryset.filter(pendaftaran_mbkm__isnull=False)
+        return queryset
+
+@admin.register(LogMingguan)
+class LogMingguanAdmin(admin.ModelAdmin):
+    list_display = ('get_program', 'tanggal_mulai', 'tanggal_selesai', 'status_persetujuan', 'total_jam')
+    search_fields = (
+        'pendaftaran_kp__mahasiswa__nama',
+        'pendaftaran_mbkm__mahasiswa__nama',
+        'status_persetujuan',
+    )
+    list_filter = (ProgramTypeFilter, 'status_persetujuan')
+
+    def get_program(self, obj):
+        """Menampilkan program terkait (KP atau MBKM)"""
+        return obj.program
+    get_program.short_description = 'Program Terkait'
+
+@admin.register(AktivitasHarian)
+class AktivitasHarianAdmin(admin.ModelAdmin):
+    list_display = ('log_mingguan', 'tanggal', 'jam_mulai', 'jam_selesai', 'get_durasi', 'deskripsi')
+    search_fields = (
+        'deskripsi',
+        'log_mingguan__pendaftaran_kp__mahasiswa__nama',
+        'log_mingguan__pendaftaran_mbkm__mahasiswa__nama',
+    )
+    list_filter = ('tanggal',)
+
+    def get_durasi(self, obj):
+        """Menampilkan durasi dengan format angka 2 desimal"""
+        return f"{obj.durasi:.2f} jam"
+    get_durasi.short_description = 'Durasi'
