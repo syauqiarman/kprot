@@ -1,8 +1,10 @@
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from database.models import *
 from LogMahasiswa.forms import LogMingguanForm, AktivitasHarianFormSet
-import datetime
+from datetime import date
+from django.urls import reverse
+from django.contrib.messages import get_messages
 
 class LogFormTest(TestCase):
     def setUp(self):
@@ -222,3 +224,165 @@ class LogFormTest(TestCase):
             form.fields['role_magang'].initial, 
             self.pendaftaran_mbkm.role
         )
+
+class LogViewsTest(TestCase):
+    def setUp(self):
+        self.user1 = User.objects.create_user(username="testuser1", password="password")
+        self.mahasiswa = Mahasiswa.objects.create(user=self.user1, nama="Budi", email="test1@example.com", npm="123456789", prodi="Ilmu Komputer")
+        self.user2 = User.objects.create_user(username="testuser2", password="password")
+        self.penyelia = Penyelia.objects.create(user=self.user2, nama="Siti", perusahaan="TechCorp", email="siti@company.com")
+        self.semester_gasal = Semester.objects.create(nama="Gasal 24/25", gasal_genap="Gasal", tahun=2024, aktif=True)
+        self.program_mbkm = ProgramMBKM.objects.create(nama="Magang Mandiri", minimum_sks=10, maksimum_sks=20)
+
+        self.pendaftaran_mbkm = PendaftaranMBKM.objects.create(
+            mahasiswa=self.mahasiswa,
+            semester=self.semester_gasal,
+            jumlah_semester=7,
+            sks_diambil=12,
+            rencana_lulus_semester_ini=False,
+            program_mbkm=self.program_mbkm,
+            penyelia=self.penyelia,
+            role="Software Engineer",
+            estimasi_sks_konversi=10,
+            tanggal_mulai=date(2024, 7, 2),
+            tanggal_selesai=date(2025, 1, 30),
+            status_pendaftaran="Terdaftar",
+            pernyataan_komitmen=True
+        )
+        
+        self.client = Client()
+        self.create_log_url = reverse('LogMahasiswa:create_log')  # Sesuai app_name
+        self.log_detail_url = reverse('LogMahasiswa:log_detail')
+        
+        # Data valid dengan 7 aktivitas
+        self.valid_data = {
+            'tanggal_mulai': '2024-07-01',
+            'tanggal_selesai': '2024-07-07',
+            'aktivitas_harian-TOTAL_FORMS': '7',
+            'aktivitas_harian-INITIAL_FORMS': '0',
+            'aktivitas_harian-MIN_NUM_FORMS': '0',
+            'aktivitas_harian-MAX_NUM_FORMS': '1000',
+        }
+        
+        for i in range(7):
+            self.valid_data.update({
+                f'aktivitas_harian-{i}-tanggal': f'2024-07-0{i+1}',
+                f'aktivitas_harian-{i}-jam_mulai': '08:00',
+                f'aktivitas_harian-{i}-jam_selesai': '16:00',
+                f'aktivitas_harian-{i}-deskripsi': 'Bekerja pada modul X',
+            })
+
+    def test_create_log_GET_with_active_program(self):
+        """Test GET request saat user memiliki program aktif"""
+        self.client.force_login(self.user1)
+        response = self.client.get(self.create_log_url)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'log_form.html')
+        self.assertIsInstance(response.context['form'], LogMingguanForm)
+        self.assertIsInstance(response.context['formset'], AktivitasHarianFormSet)
+
+    def test_create_log_POST_valid_data(self):
+        """Test POST dengan data valid membuat log baru"""
+        # Tambahkan data untuk 7 hari
+        for i in range(7):
+            self.valid_data.update({
+                f'aktivitasharian_set-{i}-tanggal': f'2024-07-0{i+1}',
+                f'aktivitasharian_set-{i}-jam_mulai': '08:00',
+                f'aktivitasharian_set-{i}-jam_selesai': '16:00',
+                f'aktivitasharian_set-{i}-deskripsi': 'Aktivitas hari ' + str(i+1),
+            })
+        self.valid_data['aktivitasharian_set-TOTAL_FORMS'] = '7'  # Update total forms
+        
+        self.client.force_login(self.user1)
+        response = self.client.post(self.create_log_url, self.valid_data)
+        
+        # Cek redirect
+        self.assertRedirects(response, reverse('LogMahasiswa:log_detail'))
+        
+        # Cek objek dibuat
+        self.assertEqual(LogMingguan.objects.count(), 1)
+        self.assertEqual(AktivitasHarian.objects.count(), 7)
+
+
+    def test_create_log_POST_overlapping_dates(self):
+        """Test POST dengan tanggal tumpang tindih dengan log lain"""
+        # Buat log pertama
+        LogMingguan.objects.create(
+            pendaftaran_mbkm=self.pendaftaran_mbkm,
+            tanggal_mulai=date(2024,7,1),
+            tanggal_selesai=date(2024,7,7),
+            total_jam=20.0
+        )
+        
+        self.client.force_login(self.user1)
+        response = self.client.post(self.create_log_url, self.valid_data)
+        
+        # Cek error message
+        self.assertFormError(response.context['form'], None, "Periode log ini tumpang tindih dengan log yang sudah ada")
+
+    def test_create_log_POST_invalid_activity_time(self):
+        """Test POST dengan jam mulai > jam selesai di aktivitas"""
+        invalid_data = self.valid_data.copy()
+        invalid_data.update({
+            'aktivitasharian_set-0-jam_mulai': '16:00',  # Perbaikan prefix
+            'aktivitasharian_set-0-jam_selesai': '08:00',
+        })
+        
+        self.client.force_login(self.user1)
+        response = self.client.post(self.create_log_url, invalid_data)
+        
+        # Cek tidak ada log yang tersimpan
+        self.assertEqual(LogMingguan.objects.count(), 0)
+        
+        # Cek error di response
+        self.assertContains(response, "Jam mulai harus sebelum jam selesai")
+
+    def test_log_detail_with_logs(self):
+        """Test halaman detail dengan log yang ada"""
+        # Buat 2 log contoh
+        LogMingguan.objects.bulk_create([
+            LogMingguan(
+                pendaftaran_mbkm=self.pendaftaran_mbkm,
+                tanggal_mulai=date(2024,7,1),
+                tanggal_selesai=date(2024,7,7),
+                total_jam=20.0
+            ),
+            LogMingguan(
+                pendaftaran_mbkm=self.pendaftaran_mbkm,
+                tanggal_mulai=date(2024,7,8),
+                tanggal_selesai=date(2024,7,14),
+                total_jam=15.5
+            )
+        ])
+        
+        self.client.force_login(self.user1)
+        response = self.client.get(self.log_detail_url)
+        
+        # Cek total jam
+        self.assertEqual(response.context['total_jam'], 35.5)
+        self.assertContains(response, "35.50 Jam")
+        
+        # Cek jumlah log ditampilkan
+        self.assertEqual(len(response.context['logs']), 2)
+
+    def test_log_detail_without_logs(self):
+        """Test halaman detail tanpa log"""
+        self.client.force_login(self.user1)
+        response = self.client.get(self.log_detail_url)
+        
+        self.assertContains(response, "Belum ada log mingguan yang tercatat")
+        self.assertEqual(response.context['total_jam'], 0.0)
+
+    def test_access_without_active_program(self):
+        """Test akses halaman tanpa program aktif"""
+        # Hapus program aktif
+        self.pendaftaran_mbkm.delete()
+        
+        self.client.force_login(self.user1)
+        response_create = self.client.get(self.create_log_url)
+        response_detail = self.client.get(self.log_detail_url)
+        
+        # Perbaikan URL redirect sesuai app_name
+        self.assertRedirects(response_create, reverse('LogMahasiswa:create_log'))
+        self.assertRedirects(response_detail, reverse('LogMahasiswa:create_log'))

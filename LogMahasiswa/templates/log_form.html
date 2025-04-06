@@ -115,25 +115,5 @@
             </button>
         </form>
     </div>
-    
-    <!-- <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Dynamic form handling logic
-        const totalForms = document.querySelector('#id_aktivitas_harian-TOTAL_FORMS');
-        let formCount = parseInt(totalForms.value);
-    
-        // Update form indices jika diperlukan
-        function updateFormIndices() {
-            document.querySelectorAll('.activity-form').forEach((form, index) => {
-                form.querySelectorAll('input, select, textarea').forEach(input => {
-                    const name = input.name.replace(/-\d+-/, `-${index}-`);
-                    input.name = name;
-                    input.id = `id_${name}`;
-                });
-            });
-            totalForms.value = formCount;
-        }
-    });
-    </script> -->
 </body>
 </html>
