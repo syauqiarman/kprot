@@ -1,13 +1,13 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
 from database.models import *
-from LogMahasiswa.forms import *
+from LogMahasiswa.forms import LogMingguanForm, AktivitasHarianFormSet
 import datetime
 
 class LogFormTest(TestCase):
     def setUp(self):
         self.user1 = User.objects.create_user(username="testuser1", password="password")
-        self.mahasiswa = Mahasiswa.objects.create(user=self.user1, nama="Budi", email="test1@example.com", npm="123456789")
+        self.mahasiswa = Mahasiswa.objects.create(user=self.user1, nama="Budi", email="test1@example.com", npm="123456789", prodi="Ilmu Komputer")
         self.user2 = User.objects.create_user(username="testuser2", password="password")
         self.penyelia = Penyelia.objects.create(user=self.user2, nama="Siti", perusahaan="TechCorp", email="siti@company.com")
         self.semester_gasal = Semester.objects.create(nama="Gasal 24/25", gasal_genap="Gasal", tahun=2024, aktif=True)
