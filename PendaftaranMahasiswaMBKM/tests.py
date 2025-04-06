@@ -15,7 +15,8 @@ class BaseTest(TestCase):
             user=self.user, 
             nama="Arthur", 
             email="test1@example.com", 
-            npm="123456789"
+            npm="123456789",
+            prodi="Ilmu Komputer"
         )
         self.semester = Semester.objects.create(
             nama="Gasal 24/25", 
@@ -305,7 +306,9 @@ class PendaftaranMBKMFormTest(BaseTest):
             user=user, 
             nama="John Doe", 
             email="john@example.com", 
-            npm="987654321"
+            npm="987654321",
+            prodi="Ilmu Komputer"
+
         )
 
         # Inisialisasi form dengan user yang sedang login
@@ -315,6 +318,7 @@ class PendaftaranMBKMFormTest(BaseTest):
         self.assertEqual(form.fields['nama'].initial, mahasiswa.nama)
         self.assertEqual(form.fields['npm'].initial, mahasiswa.npm)
         self.assertEqual(form.fields['email'].initial, mahasiswa.email)
+        self.assertEqual(form.fields['prodi'].initial, self.mahasiswa.prodi)
 
     def test_saved_pendaftaran_has_correct_mahasiswa_data(self):
         # Data valid untuk pendaftaran

@@ -59,3 +59,5 @@ def list_mahasiswa(request, semester_id=None):
         "pendaftaran_url": "/listmahasiswa/listsemester/"
     })
     
+
+    

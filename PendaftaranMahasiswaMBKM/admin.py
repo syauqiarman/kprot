@@ -23,7 +23,7 @@ class PendaftaranMBKMAdmin(admin.ModelAdmin):
 @admin.register(PendaftaranKP)
 class PendaftaranKPAdmin(admin.ModelAdmin):
     list_display = ('mahasiswa', 'status_pendaftaran')
-    search_fields = ('mahasiswanama', 'status_pendaftaran')
+    search_fields = ('mahasiswa__nama', 'status_pendaftaran')
     list_filter = ('status_pendaftaran',)
 
 @admin.register(Semester)
