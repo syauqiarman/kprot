@@ -1,7 +1,6 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from django.contrib import messages
 from database.models import LogMingguan, PendaftaranKP, PendaftaranMBKM
-from django.db import models
 from django.db.models import Sum
 from .forms import LogMingguanForm, AktivitasHarianFormSet
 
@@ -48,6 +47,8 @@ def create_log(request):
                 log.delete()
                 messages.error(request, "Terjadi kesalahan pada aktivitas harian")
         else:
+            for error in form.non_field_errors():
+                messages.error(request, error)
             formset = AktivitasHarianFormSet()
     else:
         form = LogMingguanForm(program=program)
@@ -81,6 +82,9 @@ def log_detail(request):
     else:
         logs = LogMingguan.objects.filter(pendaftaran_mbkm=program).order_by('-tanggal_mulai')
     
+    if not logs.exists():
+        messages.info(request, "Belum ada log mingguan yang tercatat.")
+
     # Hitung total jam dari semua log
     total_jam = logs.aggregate(total=Sum('total_jam'))['total'] or 0.0
     

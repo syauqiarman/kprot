@@ -74,6 +74,18 @@ class LogMingguanForm(forms.ModelForm):
                 self.add_error(None, "Periode log ini tumpang tindih dengan log yang sudah ada")
                 
         return cleaned_data
+    
+    def save(self, commit=True):
+        """Custom save untuk menambahkan created_at jika baru"""
+        instance = super().save(commit=False)
+        if not instance.pk:  # Jika objek baru
+            if isinstance(self.program, PendaftaranKP):
+                instance.pendaftaran_kp = self.program
+            else:
+                instance.pendaftaran_mbkm = self.program
+        if commit:
+            instance.save()
+        return instance
 
 class AktivitasHarianForm(forms.ModelForm):
     class Meta:
