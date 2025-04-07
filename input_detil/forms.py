@@ -1,7 +1,5 @@
 from django import forms
 from .models import PendaftaranKP, Penyelia, Semester, User
-import secrets
-import logging
 
 class InputDetilKPForm(forms.ModelForm):
     class Meta:
@@ -15,6 +13,7 @@ class InputDetilKPForm(forms.ModelForm):
     # Readonly fields (tidak akan disimpan ke model)
     mahasiswa = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
     npm = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
+    prodi = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
     semester = forms.CharField(widget=forms.TextInput(attrs={'readonly': 'readonly'}), required=False)
     sks_lulus = forms.IntegerField(widget=forms.NumberInput(attrs={'readonly': 'readonly'}), required=False)
 
@@ -32,6 +31,7 @@ class InputDetilKPForm(forms.ModelForm):
             # Prefill readonly fields dari instance mahasiswa
             self.fields['mahasiswa'].initial = getattr(self.pendaftaran_kp.mahasiswa, "nama", "")
             self.fields['npm'].initial = getattr(self.pendaftaran_kp.mahasiswa, "npm", "")
+            self.fields['prodi'].initial = getattr(self.pendaftaran_kp.mahasiswa, "prodi", "")
             self.fields['semester'].initial = getattr(self.pendaftaran_kp.semester, "nama", "")
             self.fields['sks_lulus'].initial = getattr(self.pendaftaran_kp, "sks_lulus", 0)
 
@@ -39,7 +39,7 @@ class InputDetilKPForm(forms.ModelForm):
         cleaned_data = super().clean()
 
         # Hapus field readonly agar tidak masuk ke cleaned_data
-        readonly_fields = ["mahasiswa", "npm", "semester", "sks_lulus"]
+        readonly_fields = ["mahasiswa", "npm", "semester", "prodi", "sks_lulus"]
         for field in readonly_fields:
             cleaned_data.pop(field, None)  # Hapus jika ada
             
@@ -78,26 +78,57 @@ class InputDetilKPForm(forms.ModelForm):
         penyelia_perusahaan = self.cleaned_data.get("penyelia_perusahaan")
         penyelia_email = self.cleaned_data.get("penyelia_email")
 
-        # Check if a User with the email exists; create one if not
-        user2, created = User.objects.get_or_create(
-            email=penyelia_email,
-            defaults={"username": penyelia_email}
-        )
-
         if penyelia_nama and penyelia_perusahaan and penyelia_email:
-            penyelia, created = Penyelia.objects.get_or_create(
-                user= user2,
-                defaults={"nama": penyelia_nama, "perusahaan": penyelia_perusahaan, "email": penyelia_email}
-            )
-            if not created:
-                # Jika penyelia sudah ada, pastikan datanya diperbarui
-                penyelia.nama = penyelia_nama
-                penyelia.perusahaan = penyelia_perusahaan
-                penyelia.email = penyelia_email
-                logger = logging.getLogger(__name__)
-                logger.debug(f"User: {user2}, Role Existing: {user2.role if hasattr(user2, 'role') else 'None'}")
-                penyelia.save()
+            existing_penyelia = Penyelia.objects.filter(email=penyelia_email).first()
+            if existing_penyelia:
+                # Update data jika perlu
+                existing_penyelia.nama = penyelia_nama
+                existing_penyelia.perusahaan = penyelia_perusahaan
+                existing_penyelia.save()
+                penyelia = existing_penyelia
+            else:
+                # Cek apakah user sudah ada
+                user2 = User.objects.filter(email=penyelia_email).first()
+                if user2:
+                    # Cek apakah user sudah punya role lain (tapi belum jadi Penyelia)
+                    raise forms.ValidationError("User sudah memiliki role lain dan tidak bisa menjadi Penyelia.")
+                else:
+                    # Buat user baru
+                    user2 = User.objects.create(email=penyelia_email, username=penyelia_email)
+                    # Buat Penyelia baru
+                    penyelia = Penyelia.objects.create(
+                        user=user2,
+                        nama=penyelia_nama,
+                        perusahaan=penyelia_perusahaan,
+                        email=penyelia_email
+                    )
 
+        #     # Cek apakah user dengan email ini sudah ada
+        #     user2 = User.objects.filter(email=penyelia_email).first()
+        #     if user2:
+        #         # Cek apakah user sudah memiliki role lain
+        #         if Penyelia.objects.filter(user=user2).exists():
+        #             penyelia = Penyelia.objects.get(user=user2)
+        #             # Update data penyelia
+        #             penyelia.nama = penyelia_nama
+        #             penyelia.perusahaan = penyelia_perusahaan
+        #             penyelia.email = penyelia_email
+        #             penyelia.save()
+        #         else:
+        #             raise forms.ValidationError("User sudah memiliki role lain dan tidak bisa menjadi Penyelia.")
+        #     else:
+        #         # Jika user belum ada, buat user baru
+        #         user2 = User.objects.create(email=penyelia_email, username=penyelia_email)
+
+        #         # Buat Penyelia baru
+        #         penyelia = Penyelia.objects.create(
+        #             user=user2,
+        #             nama=penyelia_nama,
+        #             perusahaan=penyelia_perusahaan,
+        #             email=penyelia_email
+        #         )
+
+            # Set penyelia ke instance form
             instance.penyelia = penyelia
 
         if commit:

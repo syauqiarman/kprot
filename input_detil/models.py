@@ -22,6 +22,8 @@ PERSETUJUAN_CHOICES = [
     ("Ditolak", "Ditolak"),
 ]
 
+PRODI_CHOICES = [('Ilmu Komputer', 'Ilmu Komputer'), ('Sistem Informasi', 'Sistem Informasi')]
+
 ############################# Abstract models #############################
 
 class OneRoleUser(models.Model):
@@ -73,6 +75,11 @@ class ManajemenFakultas(MultiRolesUser):
 class Mahasiswa(OneRoleUser):
     npm = models.CharField(max_length=20, unique=True)
     pa = models.ForeignKey(PembimbingAkademik, on_delete=models.CASCADE, blank=True, null=True)
+    prodi = models.CharField(
+        max_length=20,
+        choices=PRODI_CHOICES,
+        default='Ilmu Komputer'  
+    ) 
 
 class Penyelia(OneRoleUser):
     email = models.EmailField(unique=True, validators=[v.validate_email_penyelia])
@@ -119,9 +126,6 @@ class ProgramMBKM(models.Model):
     minimum_sks = models.IntegerField()
     maksimum_sks = models.IntegerField()
     
-    def __str__(self):
-        return self.nama
-
     def __str__(self):
         return self.nama
 
