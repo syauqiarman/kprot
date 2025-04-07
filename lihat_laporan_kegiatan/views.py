@@ -45,7 +45,7 @@ from input_detil.models import Penyelia, PendaftaranKP, PendaftaranMBKM, Laporan
 # Create your views here.
 @login_required
 @require_GET
-def lihat_laporan_kegiatan(request, mahasiswa_id, program):
+def lihat_laporan_kegiatan(request, program, mahasiswa_id):
     mahasiswa = get_object_or_404(Mahasiswa, id=mahasiswa_id)
     
     # check if user penyelia
@@ -54,9 +54,7 @@ def lihat_laporan_kegiatan(request, mahasiswa_id, program):
     
     # fetch laporan
     laporan = fetch_laporan(mahasiswa_id, program)
-    if laporan is None:
-        return JsonResponse({'error': 'Invalid program'}, status=404)
-    
+  
     # get pendaftaran
     pendaftaran = None
     if program == 'kp':
@@ -66,10 +64,11 @@ def lihat_laporan_kegiatan(request, mahasiswa_id, program):
     
     context = {
         'laporan': laporan,
-        'id_mahasiswa': pendaftaran.mahasiswa.id,
+        'pendaftaran': pendaftaran,
+        'program': program,
     }
 
-    return render(request, 'lihat_laporan_kegiatan/lihat_laporan_kegiatan.html', context)
+    return render(request, 'lihat_laporan_kegiatan.html', context)
 
 # decorator design pattern
 def is_penyelia(user):
@@ -86,7 +85,7 @@ def fetch_laporan(mahasiswa_id, program):
 @login_required
 def dashboard_penyelia_sementara(request):
     if not Penyelia.objects.filter(user=request.user).exists():
-        return render(request, "unauthorized.html", status=403)
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
 
     # ambil semua pendaftaran KP dan MBKM dari penyelia tersebut
     kp_list = PendaftaranKP.objects.filter(penyelia__user=request.user)

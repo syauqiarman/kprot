@@ -1,28 +1,30 @@
 <!-- {% extends 'base.html' %} -->
 
-{% block content %}
+<!-- {% block content %} -->
 <div class="container mt-4">
   <h2>Laporan Kegiatan Mahasiswa</h2>
-  <p><strong>ID Mahasiswa:</strong> {{ id_mahasiswa }}</p>
+  <p><strong>Nama Mahasiswa:</strong> {{ pendaftaran.mahasiswa.nama }}</p>
+  <p><strong>NPM Mahasiswa:</strong> {{ pendaftaran.mahasiswa.npm }}</p>
+  <p><strong>Role Mahasiswa:</strong> {{ pendaftaran.role }}</p>
 
-  <div id="laporan" class="hidden mt-2">
-    <!-- Download Latest Report -->
-    <div class="my-4">
-        <div class="flex items-center space-x-4">
-            <a href="{{ laporan.file_laporan.url }}" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
-                Unduh Laporan Terbaru
-            </a>
-            <!-- Preview file PDF (jika browser mendukung) -->
-            <embed src="{{ laporan.file_laporan.url }}" type="application/pdf" width="100%" height="600px" />
+  {% if laporan and laporan.file_laporan %}
+    <div id="laporan" class="hidden mt-2">
+        <!-- Download Latest Report -->
+        <div class="my-4">
+            <div class="flex items-center space-x-4">
+                <a href="{{ laporan.file_laporan.url }}" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+                    Unduh Laporan Terbaru
+                </a>
+            </div>
+            <p class="text-gray-500 text-sm mt-4">Terakhir diunggah: {{ laporan.file_timestamp }}</p>
         </div>
-        <p class="text-gray-500 text-sm mt-4">Terakhir diunggah: {{ laporan.file_timestamp }}</p>
     </div>
 
   {% else %}
     <p class="text-muted mt-3">Belum ada laporan yang dikirim.</p>
   {% endif %}
 </div>
-{% endblock %}
+<!-- {% endblock %} -->
