@@ -73,7 +73,7 @@ def log_detail(request):
             )
         except PendaftaranMBKM.DoesNotExist:
             messages.warning(request, "Anda belum memiliki program yang aktif")
-            return redirect('LogMahasiswa:create_log')
+            return redirect(request.META.get('HTTP_REFERER', '/'))
     
     # Ambil semua log terkait program
     if isinstance(program, PendaftaranKP):

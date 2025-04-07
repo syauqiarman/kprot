@@ -284,23 +284,26 @@ class LogViewsTest(TestCase):
 
     def test_create_log_POST_valid_data(self):
         """Test POST dengan data valid membuat log baru"""
-        # Tambahkan data untuk 7 hari
+        valid_data = {
+            'tanggal_mulai': '2024-07-02',
+            'tanggal_selesai': '2024-07-08',
+            'aktivitas_harian-TOTAL_FORMS': '7',
+            'aktivitas_harian-INITIAL_FORMS': '0',
+            'aktivitas_harian-MIN_NUM_FORMS': '0',
+            'aktivitas_harian-MAX_NUM_FORMS': '1000',
+        }
         for i in range(7):
-            self.valid_data.update({
-                f'aktivitasharian_set-{i}-tanggal': f'2024-07-0{i+1}',
-                f'aktivitasharian_set-{i}-jam_mulai': '08:00',
-                f'aktivitasharian_set-{i}-jam_selesai': '16:00',
-                f'aktivitasharian_set-{i}-deskripsi': 'Aktivitas hari ' + str(i+1),
+            valid_data.update({
+                f'aktivitas_harian-{i}-tanggal': f'2024-07-0{i+2}',
+                f'aktivitas_harian-{i}-jam_mulai': '08:00',
+                f'aktivitas_harian-{i}-jam_selesai': '16:00',
+                f'aktivitas_harian-{i}-deskripsi': 'Bekerja pada modul X',
             })
-        self.valid_data['aktivitasharian_set-TOTAL_FORMS'] = '7'  # Update total forms
         
         self.client.force_login(self.user1)
-        response = self.client.post(self.create_log_url, self.valid_data)
+        response = self.client.post(self.create_log_url, valid_data)
         
-        # Cek redirect
         self.assertRedirects(response, reverse('LogMahasiswa:log_detail'))
-        
-        # Cek objek dibuat
         self.assertEqual(LogMingguan.objects.count(), 1)
         self.assertEqual(AktivitasHarian.objects.count(), 7)
 
@@ -323,19 +326,22 @@ class LogViewsTest(TestCase):
 
     def test_create_log_POST_invalid_activity_time(self):
         """Test POST dengan jam mulai > jam selesai di aktivitas"""
-        invalid_data = self.valid_data.copy()
-        invalid_data.update({
-            'aktivitasharian_set-0-jam_mulai': '16:00',  # Perbaikan prefix
-            'aktivitasharian_set-0-jam_selesai': '08:00',
-        })
+        # Perbaiki tanggal log agar valid
+        invalid_data = {
+            'tanggal_mulai': '2024-07-02',
+            'tanggal_selesai': '2024-07-08',
+            'aktivitas_harian-TOTAL_FORMS': '1',
+            'aktivitas_harian-INITIAL_FORMS': '0',
+            'aktivitas_harian-0-tanggal': '2024-07-02',
+            'aktivitas_harian-0-jam_mulai': '17:00',
+            'aktivitas_harian-0-jam_selesai': '08:00',
+            'aktivitas_harian-0-deskripsi': 'Waktu invalid'
+        }
         
         self.client.force_login(self.user1)
         response = self.client.post(self.create_log_url, invalid_data)
         
-        # Cek tidak ada log yang tersimpan
         self.assertEqual(LogMingguan.objects.count(), 0)
-        
-        # Cek error di response
         self.assertContains(response, "Jam mulai harus sebelum jam selesai")
 
     def test_log_detail_with_logs(self):
@@ -376,13 +382,12 @@ class LogViewsTest(TestCase):
 
     def test_access_without_active_program(self):
         """Test akses halaman tanpa program aktif"""
-        # Hapus program aktif
         self.pendaftaran_mbkm.delete()
         
         self.client.force_login(self.user1)
         response_create = self.client.get(self.create_log_url)
         response_detail = self.client.get(self.log_detail_url)
         
-        # Perbaikan URL redirect sesuai app_name
-        self.assertRedirects(response_create, reverse('LogMahasiswa:create_log'))
-        self.assertRedirects(response_detail, reverse('LogMahasiswa:create_log'))
+        # Periksa redirect ke '/'
+        self.assertRedirects(response_create, '/')
+        self.assertRedirects(response_detail, '/')
