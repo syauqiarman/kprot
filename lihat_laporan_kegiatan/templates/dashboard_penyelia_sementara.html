@@ -10,7 +10,7 @@
       {% for p in kp_list %}
         <li>
           {{ p.mahasiswa.nama }} - 
-          <a href="{% url 'lihat_laporan_kegiatan:lihat_laporan_kegiatan' p.mahasiswa.id 'kp' %}">Lihat Laporan KP</a>
+          <a href="{% url 'lihat_laporan_kegiatan:lihat_laporan_kegiatan' 'kp' p.mahasiswa.id %}">Lihat Laporan KP</a>
         </li>
       {% endfor %}
     </ul>
@@ -24,7 +24,7 @@
       {% for p in mbkm_list %}
         <li>
           {{ p.mahasiswa.nama }} - 
-          <a href="{% url 'lihat_laporan_kegiatan:lihat_laporan_kegiatan' p.mahasiswa.id 'mbkm' %}">Lihat Laporan MBKM</a>
+          <a href="{% url 'lihat_laporan_kegiatan:lihat_laporan_kegiatan' 'mbkm' p.mahasiswa.id %}">Lihat Laporan MBKM</a>
         </li>
       {% endfor %}
     </ul>
