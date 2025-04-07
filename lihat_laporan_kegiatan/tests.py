@@ -90,22 +90,22 @@ class LihatLaporanKegiatanTests(TestCase):
         self.assertEqual(response.json(), {'error': 'Unauthorized'})
 
     def test_valid_kp_laporan(self):
-        """Test fetching valid KP reports"""
+        """Test fetching valid KP report"""
         self.client.login(username='penyelia_user', password='testpassword')
         response = self.client.get(reverse('lihat_laporan_kegiatan', args=[self.mahasiswa.id, 'kp']))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'lihat_laporan_kegiatan/lihat_laporan_kegiatan.html')
         self.assertEqual(response.context['id_mahasiswa'], self.mahasiswa.id)
-        self.assertQuerysetEqual(response.context['laporan'], LaporanKP.objects.filter(pendaftaran=self.pendaftaran_kp), ordered=False)
+        self.assertEqual(response.context['laporan'], LaporanKP.objects.filter(pendaftaran=self.pendaftaran_kp).first())
 
     def test_valid_mbkm_laporan(self):
-        """Test fetching valid MBKM reports"""
+        """Test fetching valid MBKM report"""
         self.client.login(username='penyelia_user', password='testpassword')
         response = self.client.get(reverse('lihat_laporan_kegiatan', args=[self.mahasiswa.id, 'mbkm']))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'lihat_laporan_kegiatan/lihat_laporan_kegiatan.html')
         self.assertEqual(response.context['id_mahasiswa'], self.mahasiswa.id)
-        self.assertQuerysetEqual(response.context['laporan'], LaporanMBKM.objects.filter(pendaftaran=self.pendaftaran_mbkm), ordered=False)
+        self.assertEqual(response.context['laporan'], LaporanMBKM.objects.filter(pendaftaran=self.pendaftaran_mbkm).first())
 
     def test_invalid_program(self):
         """Test invalid program input"""
@@ -123,7 +123,6 @@ class LihatLaporanKegiatanTests(TestCase):
     def test_pendaftaran_not_found(self):
         """Test when PendaftaranKP or PendaftaranMBKM does not exist"""
         self.pendaftaran_kp.delete()  # Ensure pendaftaran is removed
-
         self.client.login(username='penyelia_user', password='testpassword')
         response = self.client.get(reverse('lihat_laporan_kegiatan', args=[self.mahasiswa.id, 'kp']))
         self.assertEqual(response.status_code, 404)

@@ -77,11 +77,27 @@ def is_penyelia(user):
 
 def fetch_laporan(mahasiswa_id, program):
     if program == 'kp':
-        this_laporan = LaporanKP.objects.filter(pendaftaran__mahasiswa__id=mahasiswa_id)
-        return this_laporan
+        this_laporan = LaporanKP.objects.filter(pendaftaran__mahasiswa__id=mahasiswa_id).first()
     elif program == 'mbkm':
-        this_laporan = LaporanMBKM.objects.filter(pendaftaran__mahasiswa__id=mahasiswa_id)
-        return this_laporan
+        this_laporan = LaporanMBKM.objects.filter(pendaftaran__mahasiswa__id=mahasiswa_id).first()
+    
+    return this_laporan
+
+@login_required
+def dashboard_penyelia_sementara(request):
+    if not Penyelia.objects.filter(user=request.user).exists():
+        return render(request, "unauthorized.html", status=403)
+
+    # ambil semua pendaftaran KP dan MBKM dari penyelia tersebut
+    kp_list = PendaftaranKP.objects.filter(penyelia__user=request.user)
+    mbkm_list = PendaftaranMBKM.objects.filter(penyelia__user=request.user)
+
+    context = {
+        "kp_list": kp_list,
+        "mbkm_list": mbkm_list,
+    }
+
+    return render(request, "dashboard_penyelia_sementara.html", context)
 
 def persetujuan_laporan():
     return None
