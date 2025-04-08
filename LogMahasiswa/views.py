@@ -1,8 +1,10 @@
+from datetime import datetime, timedelta
+from django.forms import inlineformset_factory
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from database.models import LogMingguan, PendaftaranKP, PendaftaranMBKM
+from database.models import AktivitasHarian, LogMingguan, PendaftaranKP, PendaftaranMBKM
 from django.db.models import Sum
-from .forms import LogMingguanForm, AktivitasHarianFormSet
+from .forms import AktivitasHarianForm, LogMingguanForm, AktivitasHarianFormSet
 
 def create_log(request):
     try:
@@ -20,8 +22,37 @@ def create_log(request):
             messages.warning(request, "Anda belum memiliki program yang aktif")
             return redirect(request.META.get('HTTP_REFERER', '/'))
 
+    AktivitasHarianFormSet = inlineformset_factory(
+        LogMingguan,
+        AktivitasHarian,
+        form=AktivitasHarianForm,
+        extra=0,
+        can_delete=False,
+        min_num=1,
+        validate_min=True
+    )
+
     if request.method == 'POST':
         form = LogMingguanForm(request.POST, program=program)
+        post_data = request.POST.copy()
+        tanggal_mulai_str = post_data.get('tanggal_mulai')
+        tanggal_selesai_str = post_data.get('tanggal_selesai')
+        dates = []
+        num_days = 7  # Default 7 hari jika tidak ada tanggal
+
+        # Hitung jumlah hari dari tanggal yang dipilih
+        if tanggal_mulai_str and tanggal_selesai_str:
+            try:
+                start_date = datetime.strptime(tanggal_mulai_str, "%Y-%m-%d").date()
+                end_date = datetime.strptime(tanggal_selesai_str, "%Y-%m-%d").date()
+                num_days = (end_date - start_date).days + 1
+                dates = [start_date + timedelta(days=i) for i in range(num_days)]
+            except:
+                pass  # Tetap gunakan default jika parsing gagal
+
+        # Sesuaikan data POST untuk formset
+        post_data['aktivitas_harian-TOTAL_FORMS'] = num_days
+        form = LogMingguanForm(post_data, program=program)
         
         if form.is_valid():
             # Simpan log terlebih dahulu
@@ -32,8 +63,12 @@ def create_log(request):
                 log.pendaftaran_mbkm = program
             log.save()  # Simpan untuk mendapatkan ID
             
+            for i in range(num_days):
+                if i < len(dates):
+                    post_data[f'aktivitas_harian-{i}-tanggal'] = dates[i].strftime('%Y-%m-%d')
+            
             # Sekarang proses formset dengan instance yang sudah ada
-            formset = AktivitasHarianFormSet(request.POST, instance=log)
+            formset = AktivitasHarianFormSet(post_data, instance=log)
             if formset.is_valid():
                 formset.save()
 
@@ -47,9 +82,7 @@ def create_log(request):
                 log.delete()
                 messages.error(request, "Terjadi kesalahan pada aktivitas harian")
         else:
-            for error in form.non_field_errors():
-                messages.error(request, error)
-            formset = AktivitasHarianFormSet()
+            formset = AktivitasHarianFormSet(post_data)
     else:
         form = LogMingguanForm(program=program)
         formset = AktivitasHarianFormSet()
@@ -57,7 +90,8 @@ def create_log(request):
     return render(request, 'log_form.html', {
         'form': form,
         'formset': formset,
-        'program': program
+        'program': program,
+        'zipped_data': zip(formset, dates if request.method == 'POST' else [])
     })
 
 def log_detail(request):
