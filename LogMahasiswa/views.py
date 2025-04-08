@@ -63,10 +63,6 @@ def create_log(request):
                 log.pendaftaran_mbkm = program
             log.save()  # Simpan untuk mendapatkan ID
             
-            for i in range(num_days):
-                if i < len(dates):
-                    post_data[f'aktivitas_harian-{i}-tanggal'] = dates[i].strftime('%Y-%m-%d')
-            
             # Sekarang proses formset dengan instance yang sudah ada
             formset = AktivitasHarianFormSet(post_data, instance=log)
             if formset.is_valid():
@@ -82,6 +78,8 @@ def create_log(request):
                 log.delete()
                 messages.error(request, "Terjadi kesalahan pada aktivitas harian")
         else:
+            for error in form.non_field_errors():
+                messages.error(request, error)
             formset = AktivitasHarianFormSet(post_data)
     else:
         form = LogMingguanForm(program=program)

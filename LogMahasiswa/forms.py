@@ -1,6 +1,6 @@
 from django import forms
 from database.models import LogMingguan, AktivitasHarian, PendaftaranKP, PendaftaranMBKM
-from django.forms import ValidationError, inlineformset_factory
+from django.forms import ValidationError, inlineformset_factory, BaseInlineFormSet
 
 class LogMingguanForm(forms.ModelForm):
     nama = forms.CharField(disabled=True, required=False)
@@ -87,7 +87,20 @@ class LogMingguanForm(forms.ModelForm):
             instance.save()
         return instance
 
+class BaseAktivitasHarianFormSet(BaseInlineFormSet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.log_mingguan = self.instance  # Simpan instance LogMingguan
+
+    def _construct_form(self, i, **kwargs):
+        kwargs['log_mingguan'] = self.log_mingguan  # Pass ke setiap form
+        return super()._construct_form(i, **kwargs)
+
 class AktivitasHarianForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.log_mingguan = kwargs.pop('log_mingguan', None)  # Terima log_mingguan
+        super().__init__(*args, **kwargs)
+    
     class Meta:
         model = AktivitasHarian
         fields = ['tanggal', 'jam_mulai', 'jam_selesai', 'deskripsi']
@@ -115,7 +128,7 @@ class AktivitasHarianForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         tanggal = cleaned_data.get('tanggal')
-        log = self.instance.log_mingguan
+        log = self.log_mingguan  # Gunakan log_mingguan dari formset
         
         if tanggal and log:
             if not (log.tanggal_mulai <= tanggal <= log.tanggal_selesai):
@@ -126,11 +139,13 @@ class AktivitasHarianForm(forms.ModelForm):
         if jam_mulai and jam_selesai and jam_mulai >= jam_selesai:
             self.add_error('jam_mulai', "Jam mulai harus sebelum jam selesai")
 
+# Update AktivitasHarianFormSet untuk menggunakan formset custom
 AktivitasHarianFormSet = inlineformset_factory(
     LogMingguan,
     AktivitasHarian,
     form=AktivitasHarianForm,
-    extra=7,  # Default untuk 1 minggu
+    extra=7,
     can_delete=False,
-    validate_min=True
+    validate_min=True,
+    formset=BaseAktivitasHarianFormSet  # Gunakan formset custom
 )
