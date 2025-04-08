@@ -39,6 +39,15 @@ class LogMingguanForm(forms.ModelForm):
         program = self.program
 
         if tanggal_mulai and tanggal_selesai:
+
+            # Validasi maksimal 7 hari
+            delta = tanggal_selesai - tanggal_mulai
+            if delta.days > 6:  # 7 hari inklusif
+                self.add_error(
+                    'tanggal_selesai',
+                    "Maksimal rentang log mingguan adalah 7 hari"
+                )
+
             if tanggal_mulai > tanggal_selesai:
                 self.add_error('tanggal_mulai', "Tanggal mulai tidak boleh setelah tanggal selesai")
                 self.add_error('tanggal_selesai', "Tanggal selesai tidak boleh sebelum tanggal mulai")

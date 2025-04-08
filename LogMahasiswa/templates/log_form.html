@@ -125,6 +125,44 @@
             const startDateInput = document.querySelector('input[name="tanggal_mulai"]');
             const endDateInput = document.querySelector('input[name="tanggal_selesai"]');
             
+            function enforceMax7Days() {
+                if (startDateInput.value && endDateInput.value) {
+                    const startDate = new Date(startDateInput.value);
+                    const endDate = new Date(endDateInput.value);
+                    const diffDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                    
+                    // Jika lebih dari 7 hari, reset end date ke start + 6 hari
+                    if (diffDays > 7) {
+                        const newEndDate = new Date(startDate);
+                        newEndDate.setDate(newEndDate.getDate() + 6);
+                        endDateInput.value = newEndDate.toISOString().split('T')[0];
+                    }
+                }
+            }
+
+            function updateDateConstraints() {
+                if (startDateInput.value) {
+                    const startDate = new Date(startDateInput.value);
+                    const maxEndDate = new Date(startDate);
+                    maxEndDate.setDate(startDate.getDate() + 6);
+                    
+                    // Set max attribute untuk end date
+                    endDateInput.max = maxEndDate.toISOString().split('T')[0];
+                    endDateInput.min = startDate.toISOString().split('T')[0];
+                }
+            }
+
+            startDateInput.addEventListener('change', function() {
+                updateDateConstraints();
+                enforceMax7Days();
+                updateForms();
+            });
+
+            endDateInput.addEventListener('change', function() {
+                enforceMax7Days();
+                updateForms();
+            });
+
             function updateForms() {
                 const startDate = new Date(startDateInput.value);
                 const endDate = new Date(endDateInput.value);
