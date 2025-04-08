@@ -1,82 +1,94 @@
 <!-- {% extends 'base.html' %} -->
 
 <!-- {% block content %} -->
-<style>
-    .hidden {
-      display: none;
-    }
-</style>
 
-{% if messages %}
-  <div class="my-4">
-    {% for message in messages %}
-      <div 
-        class="px-4 py-3 rounded 
-              {% if message.tags == 'success' %}bg-green-100 text-green-800 border border-green-400
-              {% elif message.tags == 'error' %}bg-red-100 text-red-800 border border-red-400
-              {% elif message.tags == 'warning' %}bg-yellow-100 text-yellow-800 border border-yellow-400
-              {% else %}bg-blue-100 text-blue-800 border border-blue-400{% endif %}">
-        {{ message }}
-      </div>
-    {% endfor %}
-  </div>
-{% endif %}
-  
-<div class="container mt-4">
-  <h2>Laporan Kegiatan Mahasiswa</h2>
-  <p><strong>Nama Mahasiswa:</strong> {{ pendaftaran.mahasiswa.nama }}</p>
-  <p><strong>NPM Mahasiswa:</strong> {{ pendaftaran.mahasiswa.npm }}</p>
-  <p><strong>Role Mahasiswa:</strong> {{ pendaftaran.role }}</p>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anda Sudah Mendaftar MBKM</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
 
-  {% if laporan and laporan.file_laporan %}
-    <div id="laporan" class="hidden mt-2">
-        <!-- Download Latest Report -->
-        <div class="my-4">
-            <div class="flex items-center space-x-4">
-                <a href="{{ laporan.file_laporan.url }}" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
-                    Unduh Laporan Terbaru
-                </a>
+  <!-- <style>
+      .hidden {
+        display: none;
+      }
+  </style> -->
+  <body class="bg-gray-100 p-5">
+      {% if messages %}
+        <div class="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
+          {% for message in messages %}
+            <div class="px-4 py-3 rounded-lg border
+              {% if message.tags == 'success' %} bg-green-100 text-green-800 border-green-400
+              {% elif message.tags == 'error' %} bg-red-100 text-red-800 border-red-400
+              {% elif message.tags == 'warning' %} bg-yellow-100 text-yellow-800 border-yellow-400
+              {% else %} bg-blue-100 text-blue-800 border-blue-400
+              {% endif %}">
+              {{ message }}
             </div>
-            <p class="text-gray-500 text-sm mt-4">Terakhir diunggah: {{ laporan.file_timestamp }}</p>
+          {% endfor %}
         </div>
-    </div>
+      {% endif %}
 
-    <!-- Tombol Approve dan Deny -->
-    <div class="mt-6">
-        <form method="POST" action="{% url 'lihat_laporan_kegiatan:persetujuan_laporan' program=program id_mahasiswa=laporan.pendaftaran.mahasiswa.id %}">
-        {% csrf_token %}
-    
-        <!-- Tombol Approve -->
-        <button type="submit" name="action" value="approve" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-            Approve
-        </button>
-    
-        <!-- Tombol Reject -->
-        <button type="button" id="rejectBtn" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 ml-4">
-            Reject
-        </button>
-    
-        <!-- Textarea Feedback, awalnya disembunyikan -->
-        <div id="feedbackForm" class="mt-4 hidden">
-            <textarea name="feedback" rows="4" placeholder="Masukkan feedback laporan..." class="w-full border rounded p-2"></textarea>
-            <button type="submit" name="action" value="reject" class="mt-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-            Submit
-            </button>
+      <div class="max-w-3xl mx-auto mt-8 bg-white shadow-md rounded-xl p-6">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Laporan Kegiatan Mahasiswa</h2>
+
+        <div class="text-gray-700 space-y-1">
+          <p><span class="font-medium">Nama Mahasiswa:</span> {{ pendaftaran.mahasiswa.nama }}</p>
+          <p><span class="font-medium">NPM Mahasiswa:</span> {{ pendaftaran.mahasiswa.npm }}</p>
+          <p><span class="font-medium">Role Mahasiswa:</span> {{ pendaftaran.role }}</p>
         </div>
-        </form>
+
+        {% if laporan and laporan.file_laporan %}
+          <div id="laporan" class="mt-6">
+            <div class="bg-gray-100 p-4 rounded-lg">
+              <div class="flex justify-between items-center">
+                <a href="{{ laporan.file_laporan.url }}" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                  Unduh Laporan Terbaru
+                </a>
+              </div>
+              <p class="text-sm text-gray-500 mt-2">Terakhir diunggah: {{ laporan.file_timestamp }}</p>
+            </div>
+          </div>
+
+          <!-- Form Approve / Reject -->
+          <form method="POST" action="{% url 'lihat_laporan_kegiatan:persetujuan_laporan' program=program id_mahasiswa=laporan.pendaftaran.mahasiswa.id %}" class="mt-6 space-y-4">
+            {% csrf_token %}
+
+            <div class="flex items-center gap-4">
+              <button type="submit" name="action" value="approve" 
+                      class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                Approve
+              </button>
+
+              <button type="button" id="rejectBtn" 
+                      class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                Reject
+              </button>
+            </div>
+
+            <div id="feedbackForm" class="hidden mt-4">
+              <textarea name="feedback" rows="4" placeholder="Masukkan feedback laporan..." 
+                        class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-red-500"></textarea>
+
+              <button type="submit" name="action" value="reject" 
+                      class="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                Submit
+              </button>
+            </div>
+          </form>
+        {% else %}
+          <p class="mt-4 text-gray-500 italic">Belum ada laporan yang dikirim.</p>
+        {% endif %}
+      </div>
     </div>
-
-  {% else %}
-    <p class="text-muted mt-3">Belum ada laporan yang dikirim.</p>
-  {% endif %}
-</div>
-
 <script>
-    document.getElementById('rejectBtn').addEventListener('click', function () {
-      document.getElementById('feedbackForm').classList.remove('hidden');
-    });
+  document.getElementById('rejectBtn')?.addEventListener('click', function () {
+    document.getElementById('feedbackForm')?.classList.remove('hidden');
+  });
 </script>
+</body>
 <!-- {% endblock %} -->

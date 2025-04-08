@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST
-from input_detil.models import Penyelia, PendaftaranKP, PendaftaranMBKM, Laporan, LaporanKP, LaporanMBKM, Mahasiswa
+from input_detil.models import Penyelia, PendaftaranKP, PendaftaranMBKM, LaporanKP, LaporanMBKM, Mahasiswa
 
 # Create your views here.
 @login_required
@@ -14,9 +14,6 @@ def lihat_laporan_kegiatan(request, program, mahasiswa_id):
     # check if user penyelia
     if not is_penyelia(request.user):
         return JsonResponse({'error': 'Unauthorized'}, status=403)
-    
-    # fetch laporan
-    laporan = fetch_laporan(request, mahasiswa_id, program)
   
     # get pendaftaran
     pendaftaran = None
@@ -24,6 +21,11 @@ def lihat_laporan_kegiatan(request, program, mahasiswa_id):
         pendaftaran = get_object_or_404(PendaftaranKP, mahasiswa=mahasiswa)
     elif program == 'mbkm':
         pendaftaran = get_object_or_404(PendaftaranMBKM, mahasiswa=mahasiswa)
+    else:
+        return JsonResponse({'error': 'Invalid program'}, status=404)
+    
+    # fetch laporan
+    laporan = fetch_laporan(request, mahasiswa_id, program)
     
     context = {
         'laporan': laporan,
@@ -33,23 +35,9 @@ def lihat_laporan_kegiatan(request, program, mahasiswa_id):
 
     return render(request, 'lihat_laporan_kegiatan.html', context)
 
-# decorator design pattern
-def is_penyelia(user):
-    return Penyelia.objects.filter(user=user).exists()
-
-def fetch_laporan(request, mahasiswa_id, program):
-    if program == 'kp':
-        this_laporan = LaporanKP.objects.filter(pendaftaran__mahasiswa__id=mahasiswa_id).first()
-    elif program == 'mbkm':
-        this_laporan = LaporanMBKM.objects.filter(pendaftaran__mahasiswa__id=mahasiswa_id).first()
-    else:
-        messages.error(request, 'Jenis program tidak dikenali.')
-        return redirect('dashboard_penyelia_sementara')
-    
-    return this_laporan
-
+# temporary dashboard for penyelia
 @login_required
-def dashboard_penyelia_sementara(request):
+def temp_dashboard_penyelia(request):
     if not Penyelia.objects.filter(user=request.user).exists():
         return JsonResponse({'error': 'Unauthorized'}, status=403)
 
@@ -61,9 +49,10 @@ def dashboard_penyelia_sementara(request):
         "kp_list": kp_list,
         "mbkm_list": mbkm_list,
     }
+    
+    return render(request, "temp_dashboard_penyelia.html", context)
 
-    return render(request, "dashboard_penyelia_sementara.html", context)
-
+@login_required
 @require_POST
 def persetujuan_laporan(request, program, id_mahasiswa):
     action = request.POST.get('action')
@@ -87,3 +76,15 @@ def persetujuan_laporan(request, program, id_mahasiswa):
         messages.error(request, 'Aksi tidak valid.')
 
     return redirect(request.META.get('HTTP_REFERER'))
+
+# decorator design pattern
+def is_penyelia(user):
+    return Penyelia.objects.filter(user=user).exists()
+
+def fetch_laporan(request, mahasiswa_id, program):
+    if program == 'kp':
+        this_laporan = LaporanKP.objects.filter(pendaftaran__mahasiswa__id=mahasiswa_id).first()
+    elif program == 'mbkm':
+        this_laporan = LaporanMBKM.objects.filter(pendaftaran__mahasiswa__id=mahasiswa_id).first()
+    
+    return this_laporan

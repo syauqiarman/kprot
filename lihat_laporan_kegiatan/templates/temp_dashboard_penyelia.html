@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container mt-4">
+      <h2>Dashboard Penyelia</h2>
+    
+      <h4 class="mt-4">KP</h4>
+      {% if kp_list %}
+        <ul>
+          {% for p in kp_list %}
+            <li>
+              {{ p.mahasiswa.nama }} - 
+              <a href="{% url 'lihat_laporan_kegiatan:lihat_laporan_kegiatan' 'kp' p.mahasiswa.id %}">Lihat Laporan KP</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted">Belum ada mahasiswa KP.</p>
+      {% endif %}
+    
+      <h4 class="mt-4">MBKM</h4>
+      {% if mbkm_list %}
+        <ul>
+          {% for p in mbkm_list %}
+            <li>
+              {{ p.mahasiswa.nama }} - 
+              <a href="{% url 'lihat_laporan_kegiatan:lihat_laporan_kegiatan' 'mbkm' p.mahasiswa.id %}">Lihat Laporan MBKM</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted">Belum ada mahasiswa MBKM.</p>
+      {% endif %}
+  </div>
+{% endblock %}
+  
