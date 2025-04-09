@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST
-from input_detil.models import Penyelia, PendaftaranKP, PendaftaranMBKM, LaporanKP, LaporanMBKM, Mahasiswa
+from input_detil.models import Penyelia, PendaftaranKP, PendaftaranMBKM, LaporanKP, LaporanMBKM, Mahasiswa, Semester
 
 # Create your views here.
 @login_required
@@ -37,6 +37,7 @@ def lihat_laporan_kegiatan(request, program, mahasiswa_id):
 
 # temporary dashboard for penyelia
 @login_required
+@require_GET
 def temp_dashboard_penyelia(request):
     if not Penyelia.objects.filter(user=request.user).exists():
         return JsonResponse({'error': 'Unauthorized'}, status=403)
@@ -57,8 +58,33 @@ def temp_dashboard_penyelia(request):
 def persetujuan_laporan(request, program, id_mahasiswa):
     action = request.POST.get('action')
     feedback = request.POST.get('feedback', '')
-    
+
+    mahasiswa = get_object_or_404(Mahasiswa, id=id_mahasiswa)
+    semester_aktif = Semester.objects.filter(aktif=True).first()
+    print(semester_aktif.nama)
+
+    # Ambil pendaftaran sesuai program
+    if program == 'kp':
+        pendaftaran = PendaftaranKP.objects.filter(mahasiswa=mahasiswa).first()
+    elif program == 'mbkm':
+        pendaftaran = PendaftaranMBKM.objects.filter(mahasiswa=mahasiswa).first()
+    else:
+        messages.error(request, 'Program tidak valid.')
+        return redirect(request.META.get('HTTP_REFERER'))
+
+    if pendaftaran is None:
+        messages.error(request, 'Pendaftaran tidak ditemukan.')
+        return redirect(request.META.get('HTTP_REFERER'))
+
+    # Cek apakah semester pendaftaran adalah semester aktif
+    if not semester_aktif or pendaftaran.semester != semester_aktif:
+        messages.error(request, 'Persetujuan hanya dapat dilakukan pada semester aktif.')
+        return redirect(request.META.get('HTTP_REFERER'))
+
     laporan = fetch_laporan(request, id_mahasiswa, program)
+    if laporan is None:
+        messages.error(request, 'Laporan tidak ditemukan.')
+        return redirect(request.META.get('HTTP_REFERER'))
 
     if action == 'approve':
         laporan.status_persetujuan_penyelia = 'Disetujui'
@@ -76,6 +102,7 @@ def persetujuan_laporan(request, program, id_mahasiswa):
         messages.error(request, 'Aksi tidak valid.')
 
     return redirect(request.META.get('HTTP_REFERER'))
+
 
 # decorator design pattern
 def is_penyelia(user):
