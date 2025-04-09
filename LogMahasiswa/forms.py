@@ -40,7 +40,6 @@ class LogMingguanForm(forms.ModelForm):
 
         if tanggal_mulai and tanggal_selesai:
 
-            # Validasi maksimal 7 hari
             delta = tanggal_selesai - tanggal_mulai
             if delta.days > 6:  # 7 hari inklusif
                 self.add_error(
@@ -85,7 +84,6 @@ class LogMingguanForm(forms.ModelForm):
         return cleaned_data
     
     def save(self, commit=True):
-        """Custom save untuk menambahkan created_at jika baru"""
         instance = super().save(commit=False)
         if not instance.pk:  # Jika objek baru
             if isinstance(self.program, PendaftaranKP):
@@ -139,7 +137,7 @@ class AktivitasHarianForm(forms.ModelForm):
         tanggal = cleaned_data.get('tanggal')
         log = self.log_mingguan  # Gunakan log_mingguan dari formset
         
-        if tanggal and log:
+        if log.tanggal_mulai is not None and log.tanggal_selesai is not None:
             if not (log.tanggal_mulai <= tanggal <= log.tanggal_selesai):
                 self.add_error('tanggal', "Tanggal aktivitas harus dalam periode log mingguan")
         
@@ -148,7 +146,6 @@ class AktivitasHarianForm(forms.ModelForm):
         if jam_mulai and jam_selesai and jam_mulai >= jam_selesai:
             self.add_error('jam_mulai', "Jam mulai harus sebelum jam selesai")
 
-# Update AktivitasHarianFormSet untuk menggunakan formset custom
 AktivitasHarianFormSet = inlineformset_factory(
     LogMingguan,
     AktivitasHarian,

@@ -4,7 +4,6 @@ from database.models import *
 from LogMahasiswa.forms import LogMingguanForm, AktivitasHarianFormSet
 from datetime import date
 from django.urls import reverse
-from django.contrib.messages import get_messages
 
 class LogFormTest(TestCase):
     def setUp(self):
@@ -31,12 +30,74 @@ class LogFormTest(TestCase):
             pernyataan_komitmen=True
         )
 
-    def test_valid_form(self):
+        self.pendaftaran_kp = PendaftaranKP.objects.create(
+            mahasiswa=self.mahasiswa,
+            semester=self.semester_gasal,
+            jumlah_semester=7,
+            sks_lulus=120,
+            penyelia=self.penyelia,
+            role="Software Engineer",
+            total_jam_kerja=300,
+            tanggal_mulai=date(2024, 4, 2),
+            tanggal_selesai=date(2024, 10, 30),
+            status_pendaftaran="Terdaftar",
+            pernyataan_komitmen=True
+        )
+
+    def test_valid_form_mbkm(self):
         form_data = {
             'tanggal_mulai': '2024-07-02',
-            'tanggal_selesai': '2024-07-09'
+            'tanggal_selesai': '2024-07-08'
         }
         form = LogMingguanForm(program=self.pendaftaran_mbkm, data=form_data)
+        self.assertTrue(form.is_valid())
+    
+    def test_valid_form_kp(self):
+        form_data = {
+            'tanggal_mulai': '2024-07-02',
+            'tanggal_selesai': '2024-07-08'
+        }
+        form = LogMingguanForm(program=self.pendaftaran_kp, data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_save_with_new_instance_kp(self):
+        """Test save untuk instance baru dengan program KP"""
+        form_data = {
+            'tanggal_mulai': '2024-07-02',
+            'tanggal_selesai': '2024-07-08'
+        }
+        form = LogMingguanForm(program=self.pendaftaran_kp, data=form_data)
+        if form.is_valid():
+            log = form.save(commit=False)
+            self.assertEqual(log.pendaftaran_kp, self.pendaftaran_kp)
+
+    def test_form_save_with_kp(self):
+        """Test save form dengan program KP"""
+        form_data = {
+            'tanggal_mulai': '2024-04-02',
+            'tanggal_selesai': '2024-04-08'
+        }
+        form = LogMingguanForm(program=self.pendaftaran_kp, data=form_data)
+        self.assertTrue(form.is_valid())
+        
+        log = form.save(commit=True)
+        self.assertEqual(log.pendaftaran_kp, self.pendaftaran_kp)
+        self.assertIsNotNone(log.pk)
+
+    def test_form_update_excludes_self(self):
+        """Test validasi overlap dengan exclude instance yang sedang diupdate"""
+        log = LogMingguan.objects.create(
+            pendaftaran_mbkm=self.pendaftaran_mbkm,
+            tanggal_mulai='2024-07-02',
+            tanggal_selesai='2024-07-08'
+        )
+        
+        # Data update dengan tanggal sama
+        form_data = {
+            'tanggal_mulai': '2024-07-02',
+            'tanggal_selesai': '2024-07-08'
+        }
+        form = LogMingguanForm(program=self.pendaftaran_mbkm, data=form_data, instance=log)
         self.assertTrue(form.is_valid())
 
     def test_invalid_date_range(self):
@@ -254,7 +315,6 @@ class LogViewsTest(TestCase):
         self.create_log_url = reverse('LogMahasiswa:create_log')  # Sesuai app_name
         self.log_detail_url = reverse('LogMahasiswa:log_detail')
         
-        # Data valid dengan 7 aktivitas
         self.valid_data = {
             'tanggal_mulai': '2024-07-01',
             'tanggal_selesai': '2024-07-07',
@@ -307,6 +367,79 @@ class LogViewsTest(TestCase):
         self.assertEqual(LogMingguan.objects.count(), 1)
         self.assertEqual(AktivitasHarian.objects.count(), 7)
 
+    def test_create_log_with_kp_program(self):
+        """Test membuat log dengan program KP"""
+        # Hapus MBKM dan buat KP
+        self.pendaftaran_mbkm.delete()
+        pendaftaran_kp = PendaftaranKP.objects.create(
+            mahasiswa=self.mahasiswa,
+            semester=self.semester_gasal,
+            jumlah_semester=7,
+            sks_lulus=120,
+            penyelia=self.penyelia,
+            role="Developer",
+            total_jam_kerja=300,
+            tanggal_mulai=date(2024, 4, 1),
+            tanggal_selesai=date(2024, 10, 30),
+            status_pendaftaran="Terdaftar",
+            pernyataan_komitmen=True
+        )
+        
+        valid_data = {
+            'tanggal_mulai': '2024-04-01',
+            'tanggal_selesai': '2024-04-07',
+            'aktivitas_harian-TOTAL_FORMS': '7',
+            'aktivitas_harian-INITIAL_FORMS': '0',
+        }
+        
+        for i in range(7):
+            valid_data.update({
+                f'aktivitas_harian-{i}-tanggal': f'2024-04-0{i+1}',
+                f'aktivitas_harian-{i}-jam_mulai': '08:00',
+                f'aktivitas_harian-{i}-jam_selesai': '16:00',
+                f'aktivitas_harian-{i}-deskripsi': 'Bekerja pada modul Y',
+            })
+        
+        self.client.force_login(self.user1)
+        response = self.client.post(self.create_log_url, valid_data)
+        
+        self.assertRedirects(response, reverse('LogMahasiswa:log_detail'))
+        self.assertEqual(LogMingguan.objects.count(), 1)
+        log = LogMingguan.objects.first()
+        self.assertEqual(log.pendaftaran_kp, pendaftaran_kp)
+
+    def test_log_detail_with_kp_logs(self):
+        """Test menampilkan log untuk program KP"""
+        # Hapus MBKM dan buat KP
+        self.pendaftaran_mbkm.delete()
+        pendaftaran_kp = PendaftaranKP.objects.create(
+            mahasiswa=self.mahasiswa,
+            semester=self.semester_gasal,
+            jumlah_semester=7,
+            sks_lulus=120,
+            penyelia=self.penyelia,
+            role="Developer",
+            total_jam_kerja=300,
+            tanggal_mulai=date(2024, 4, 1),
+            tanggal_selesai=date(2024, 10, 30),
+            status_pendaftaran="Terdaftar",
+            pernyataan_komitmen=True
+        )
+        
+        # Buat log KP
+        LogMingguan.objects.create(
+            pendaftaran_kp=pendaftaran_kp,
+            tanggal_mulai=date(2024, 4, 1),
+            tanggal_selesai=date(2024, 4, 7),
+            total_jam=40.0
+        )
+        
+        self.client.force_login(self.user1)
+        response = self.client.get(self.log_detail_url)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['logs']), 1)
+        self.assertEqual(response.context['logs'][0].pendaftaran_kp, pendaftaran_kp)
 
     def test_create_log_POST_overlapping_dates(self):
         # Buat log pertama dengan tanggal valid dalam rentang program

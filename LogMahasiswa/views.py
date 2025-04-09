@@ -1,36 +1,27 @@
 from datetime import datetime, timedelta
-from django.forms import inlineformset_factory
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from database.models import AktivitasHarian, LogMingguan, PendaftaranKP, PendaftaranMBKM
 from django.db.models import Sum
-from .forms import AktivitasHarianForm, LogMingguanForm, AktivitasHarianFormSet
+from LogMahasiswa.forms import AktivitasHarianForm, LogMingguanForm, AktivitasHarianFormSet
 
 def create_log(request):
     try:
         program = PendaftaranKP.objects.get(
             mahasiswa__user=request.user,
-            status_pendaftaran='Terdaftar'
+            status_pendaftaran='Terdaftar',
+            semester__aktif=True
         )
     except PendaftaranKP.DoesNotExist:
         try:
             program = PendaftaranMBKM.objects.get(
                 mahasiswa__user=request.user,
-                status_pendaftaran='Terdaftar'
+                status_pendaftaran='Terdaftar',
+                semester__aktif=True
             )
         except PendaftaranMBKM.DoesNotExist:
             messages.warning(request, "Anda belum memiliki program yang aktif")
             return redirect(request.META.get('HTTP_REFERER', '/'))
-
-    AktivitasHarianFormSet = inlineformset_factory(
-        LogMingguan,
-        AktivitasHarian,
-        form=AktivitasHarianForm,
-        extra=0,
-        can_delete=False,
-        min_num=1,
-        validate_min=True
-    )
 
     if request.method == 'POST':
         form = LogMingguanForm(request.POST, program=program)
@@ -40,7 +31,6 @@ def create_log(request):
         dates = []
         num_days = 7  # Default 7 hari jika tidak ada tanggal
 
-        # Hitung jumlah hari dari tanggal yang dipilih
         if tanggal_mulai_str and tanggal_selesai_str:
             try:
                 start_date = datetime.strptime(tanggal_mulai_str, "%Y-%m-%d").date()
@@ -96,13 +86,15 @@ def log_detail(request):
     try:
         program = PendaftaranKP.objects.get(
             mahasiswa__user=request.user,
-            status_pendaftaran='Terdaftar'
+            status_pendaftaran='Terdaftar',
+            semester__aktif=True
         )
     except PendaftaranKP.DoesNotExist:
         try:
             program = PendaftaranMBKM.objects.get(
                 mahasiswa__user=request.user,
-                status_pendaftaran='Terdaftar'
+                status_pendaftaran='Terdaftar',
+                semester__aktif=True
             )
         except PendaftaranMBKM.DoesNotExist:
             messages.warning(request, "Anda belum memiliki program yang aktif")
