@@ -242,3 +242,15 @@ class InputDetilKPTests(TestCase):
         # DB belum diperbarui
         self.pendaftaran_kp.refresh_from_db()
         self.assertNotEqual(self.pendaftaran_kp.penyelia.nama, "Commit Test")
+
+    def test_input_detil_success_page_renders(self):
+        """Test bahwa halaman input_detil_success dapat diakses dan menampilkan informasi yang benar."""
+        self.client.login(username="testuser1", password="password")
+
+        response = self.client.get(reverse("input_detil:input_detil_success", args=[self.pendaftaran_kp.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "success_page.html")
+        self.assertContains(response, "Berhasil")  # Bisa disesuaikan tergantung isi template-mu
+        self.assertContains(response, self.pendaftaran_kp.id)
+
