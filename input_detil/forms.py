@@ -103,31 +103,6 @@ class InputDetilKPForm(forms.ModelForm):
                         email=penyelia_email
                     )
 
-        #     # Cek apakah user dengan email ini sudah ada
-        #     user2 = User.objects.filter(email=penyelia_email).first()
-        #     if user2:
-        #         # Cek apakah user sudah memiliki role lain
-        #         if Penyelia.objects.filter(user=user2).exists():
-        #             penyelia = Penyelia.objects.get(user=user2)
-        #             # Update data penyelia
-        #             penyelia.nama = penyelia_nama
-        #             penyelia.perusahaan = penyelia_perusahaan
-        #             penyelia.email = penyelia_email
-        #             penyelia.save()
-        #         else:
-        #             raise forms.ValidationError("User sudah memiliki role lain dan tidak bisa menjadi Penyelia.")
-        #     else:
-        #         # Jika user belum ada, buat user baru
-        #         user2 = User.objects.create(email=penyelia_email, username=penyelia_email)
-
-        #         # Buat Penyelia baru
-        #         penyelia = Penyelia.objects.create(
-        #             user=user2,
-        #             nama=penyelia_nama,
-        #             perusahaan=penyelia_perusahaan,
-        #             email=penyelia_email
-        #         )
-
             # Set penyelia ke instance form
             instance.penyelia = penyelia
 

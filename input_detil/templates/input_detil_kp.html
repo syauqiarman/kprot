@@ -31,7 +31,7 @@
             </div>
         {% endif %}
 
-        <form method="post" enctype="multipart/form-data" class="card p-4 shadow">
+        <form method="post" action="{% url 'input_detil:simpan_detil_kp' pendaftaran.id %}" enctype="multipart/form-data" class="card p-4 shadow">
             {% csrf_token %}
             
             <div class="mb-3">

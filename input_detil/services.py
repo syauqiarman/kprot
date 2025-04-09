@@ -1,11 +1,6 @@
 from datetime import datetime
 from django.shortcuts import get_object_or_404
 from .models import PendaftaranKP, Mahasiswa
-import json
-
-# history_data = json.loads(registration.history) if registration.history else []
-# history_data.append(datetime.now().isoformat())
-# registration.history = json.dumps(history_data)
 
 class PendaftaranKPService:
     """
@@ -19,45 +14,15 @@ class PendaftaranKPService:
         return get_object_or_404(
             PendaftaranKP, 
             mahasiswa=mahasiswa,
-            status_pendaftaran="Menunggu Detil"
+            status_pendaftaran="Menunggu Detil",
+            semester__aktif=True
         )
     
     @staticmethod
-    def update_registration_status(registration):
-        """
-        Perbarui status pendaftaran KP berdasarkan kelengkapan data:
-        - Jika semua field penting terisi → status menjadi "Terdaftar"
-        - Jika masih ada yang kosong → tetap "Menunggu Detil"
-        """
-        required_fields = [
-            registration.role,
-            registration.total_jam_kerja,
-            registration.penyelia and registration.penyelia.nama,
-            registration.penyelia and registration.penyelia.perusahaan,
-            registration.penyelia and registration.penyelia.email,
-        ]
-
-        if all(required_fields):
-            registration.status_pendaftaran = "Terdaftar"
-        else:
-            registration.status_pendaftaran = "Menunggu Detil"
-        
-        # registration.history.append(datetime.now().isoformat())  # Tambahkan timestamp
-        # history_data = json.loads(registration.history) if registration.history else []
-        # history_data.append(datetime.now().isoformat())
-        # registration.history = json.dumps(history_data)
-        registration.save()
-        return registration
-    
-    @staticmethod
-    def check_has_pending_registration(user):
+    def check_has_pending_registration(pendaftaran):
         """Memeriksa apakah user memiliki pendaftaran yang masih 'Menunggu Detil'."""
-        try:
-            mahasiswa = Mahasiswa.objects.get(user=user)
-            PendaftaranKP.objects.get(
-                mahasiswa=mahasiswa,
-                status_pendaftaran="Menunggu Detil"
-            )
+        if pendaftaran.semester.aktif == True and pendaftaran.status_pendaftaran == 'Menunggu Detil':
             return True
-        except (Mahasiswa.DoesNotExist, PendaftaranKP.DoesNotExist):
+        else:
             return False
+

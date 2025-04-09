@@ -1,12 +1,11 @@
-from django.test import TestCase
+from django.test import TestCase, Client
 from input_detil.models import Mahasiswa, Penyelia, User, Semester, PendaftaranKP, Dosen
 from input_detil.services import PendaftaranKPService
 from input_detil.forms import InputDetilKPForm
 from datetime import date
-from django.http import Http404
 from django.urls import reverse
 
-class InputDetilKPFormTests(TestCase):
+class InputDetilKPTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         # Create test user and mahasiswa
@@ -39,6 +38,11 @@ class InputDetilKPFormTests(TestCase):
             status_pendaftaran="Menunggu Detil",
             history=["2024-03-08T12:34:56"],
         )
+
+        cls.client = Client()
+    
+    def setUp(self):
+        self.client.login(username="testuser1", password="password")
 
     def test_form_prefills_static_student_data(self):
         """Test that the form prefills readonly fields with student data."""
@@ -85,7 +89,7 @@ class InputDetilKPFormTests(TestCase):
             instance=self.pendaftaran_kp,
         )
         self.assertFalse(form.is_valid())
-        self.assertIn("tanggal_selesai", form.errors)  # Ensure error is for tanggal_selesai
+        self.assertIn("tanggal_selesai", form.errors)
 
     def test_invalid_negative_working_hours(self):
         """Test validation for negative working hours."""
@@ -114,7 +118,7 @@ class InputDetilKPFormTests(TestCase):
             "penyelia_nama", "penyelia_perusahaan", "penyelia_email"
         ]
         for field in expected_errors:
-            self.assertIn(field, form.errors, f"Field {field} should produce an error but did not.")
+            self.assertIn(field, form.errors)
 
     def test_service_get_pending_registration(self):
         """Test that the service retrieves the correct pending registration."""
@@ -124,15 +128,29 @@ class InputDetilKPFormTests(TestCase):
 
     def test_service_check_has_pending_registration(self):
         """Test that the service correctly checks for pending registrations."""
-        self.assertTrue(PendaftaranKPService.check_has_pending_registration(self.user1))
+        self.assertTrue(PendaftaranKPService.check_has_pending_registration(self.pendaftaran_kp))
 
-        # Test with a new user who has no pending registration
-        new_user = User.objects.create_user(username="newuser", password="password")
-        self.assertFalse(PendaftaranKPService.check_has_pending_registration(new_user))
+        inactive_semester = Semester.objects.create(nama="Gasal 23/24", gasal_genap="Gasal", tahun=2023, aktif=False)
+        inactive_pendaftaran = PendaftaranKP.objects.create(
+            mahasiswa=self.mahasiswa1,
+            semester=inactive_semester,
+            jumlah_semester=7,
+            sks_lulus=120,
+            penyelia=self.penyelia,
+            role="Intern",
+            total_jam_kerja=300,
+            tanggal_mulai=date(2023, 6, 1),
+            tanggal_selesai=date(2023, 9, 1),
+            pernyataan_komitmen=True,
+            status_pendaftaran='Terdaftar',
+            history=["2024-03-08T12:34:56"],
+        )
+        self.assertFalse(PendaftaranKPService.check_has_pending_registration(inactive_pendaftaran))
 
-    def test_form_save_with_new_penyelia(self):
-        """Test that the form saves correctly with a new penyelia."""
-        form_data = {
+    def test_post_simpan_detil_kp_creates_new_penyelia(self):
+        """Test POST to simpan_detil_kp creates a new penyelia."""
+        url = reverse('input_detil:simpan_detil_kp', args=[self.pendaftaran_kp.id])
+        response = self.client.post(url, {
             "role": "Intern",
             "total_jam_kerja": 300,
             "tanggal_mulai": "2024-06-01",
@@ -140,71 +158,47 @@ class InputDetilKPFormTests(TestCase):
             "penyelia_nama": "New Supervisor",
             "penyelia_perusahaan": "New Company",
             "penyelia_email": "new.supervisor@example.com",
-        }
-        form = InputDetilKPForm(data=form_data, instance=self.pendaftaran_kp)
-        self.assertTrue(form.is_valid())
+        })
+        self.assertRedirects(response, reverse("input_detil:input_detil_success", args=[self.pendaftaran_kp.id]))
 
-        # Save the form and check if a new Penyelia is created
-        updated_pendaftaran = form.save()
-        self.assertEqual(updated_pendaftaran.penyelia.nama, "New Supervisor")
-        self.assertEqual(updated_pendaftaran.penyelia.email, "new.supervisor@example.com")
+        updated = PendaftaranKP.objects.get(id=self.pendaftaran_kp.id)
+        self.assertEqual(updated.penyelia.nama, "New Supervisor")
+        self.assertEqual(updated.status_pendaftaran, "Terdaftar")
 
-    def test_form_save_updates_status_pendaftaran(self):
-        """Test that the form updates the status_pendaftaran to 'Terdaftar' when all fields are filled."""
-        form_data = {
-            "role": "Intern",
-            "total_jam_kerja": 300,
-            "tanggal_mulai": "2024-06-01",
-            "tanggal_selesai": "2024-09-01",
-            "penyelia_nama": "Dr. Supervisor",
-            "penyelia_perusahaan": "PT AI Research",
-            "penyelia_email": "supervisor@example.com",
-        }
-        form = InputDetilKPForm(data=form_data, instance=self.pendaftaran_kp)
-        self.assertTrue(form.is_valid())
-
-        # Save the form and check if the status is updated
-        updated_pendaftaran = form.save()
-        self.assertEqual(updated_pendaftaran.status_pendaftaran, "Terdaftar")
-
-    def test_existing_penyelia_reused(self):
-        """Test that an existing penyelia is reused instead of creating a new one."""
-        form_data = {
+    def test_post_reuses_existing_penyelia(self):
+        """Test POST reuses existing penyelia instead of creating a new one."""
+        url = reverse('input_detil:simpan_detil_kp', args=[self.pendaftaran_kp.id])
+        response = self.client.post(url, {
             "role": "Intern",
             "total_jam_kerja": 300,
             "tanggal_mulai": "2024-06-01",
             "tanggal_selesai": "2024-09-01",
             "penyelia_nama": "Siti",
             "penyelia_perusahaan": "TechCorp",
-            "penyelia_email": "siti@company.com",  # Existing penyelia email
-        }
-        form = InputDetilKPForm(data=form_data, instance=self.pendaftaran_kp)
-        self.assertTrue(form.is_valid())
+            "penyelia_email": "siti@company.com",
+        })
+        self.assertRedirects(response, reverse("input_detil:input_detil_success", args=[self.pendaftaran_kp.id]))
 
-        updated_pendaftaran = form.save()
-        self.assertEqual(updated_pendaftaran.penyelia, self.penyelia)  # Ensure same penyelia is used
+        updated = PendaftaranKP.objects.get(id=self.pendaftaran_kp.id)
+        self.assertEqual(updated.penyelia.id, self.penyelia.id)
 
-    # def test_existing_user_with_different_role(self):
-    #     """Test that an error is raised if a user already has a different role."""
-    #     # Create a user with an unrelated role
-    #     other_user = User.objects.create_user(username="otheruser", email="other@example.com", password="password")
-    #     Dosen.objects.create(user=other_user, nama="Some Dosen", email="other@example.com")
-
-    #     form_data = {
-    #         "role": "Intern",
-    #         "total_jam_kerja": 300,
-    #         "tanggal_mulai": "2024-06-01",
-    #         "tanggal_selesai": "2024-09-01",
-    #         "penyelia_nama": "Other Supervisor",
-    #         "penyelia_perusahaan": "OtherCorp",
-    #         "penyelia_email": "other@example.com",
-    #     }
-    #     form = InputDetilKPForm(data=form_data, instance=self.pendaftaran_kp)
-    #     self.assertFalse(form.is_valid())
-    #     self.assertIn("__all__", form.errors)  # Expecting a non-field error
+    def test_post_invalid_dates_shows_errors(self):
+        """Test POST with invalid date range returns to form with errors."""
+        url = reverse('input_detil:simpan_detil_kp', args=[self.pendaftaran_kp.id])
+        response = self.client.post(url, {
+            "role": "Intern",
+            "total_jam_kerja": 300,
+            "tanggal_mulai": "2024-09-01",
+            "tanggal_selesai": "2024-06-01",  # Invalid
+            "penyelia_nama": "Siti",
+            "penyelia_perusahaan": "TechCorp",
+            "penyelia_email": "siti@company.com",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Tanggal selesai harus setelah tanggal mulai")
 
     def test_invalid_penyelia_email_format(self):
-        """Test that an invalid penyelia email format triggers validation error."""
+        """Form tidak valid jika email penyelia tidak sesuai format."""
         form_data = {
             "role": "Intern",
             "total_jam_kerja": 300,
@@ -212,23 +206,24 @@ class InputDetilKPFormTests(TestCase):
             "tanggal_selesai": "2024-09-01",
             "penyelia_nama": "Bad Email",
             "penyelia_perusahaan": "Invalid Corp",
-            "penyelia_email": "invalid-email",  # Invalid format
+            "penyelia_email": "invalid-email",  # format tidak valid
         }
         form = InputDetilKPForm(data=form_data, instance=self.pendaftaran_kp)
         self.assertFalse(form.is_valid())
-        self.assertIn("penyelia_email", form.errors)  # Ensuring email error is triggered
+        self.assertIn("penyelia_email", form.errors)
 
     def test_no_pending_registration_redirects(self):
-        """Test that a user without pending registration is redirected."""
+        """User tanpa pendaftaran KP status 'Menunggu Detil' akan diarahkan."""
         self.client.login(username="testuser1", password="password")
-        self.pendaftaran_kp.status_pendaftaran = "Terdaftar"  # Mark as registered
+        
+        self.pendaftaran_kp.status_pendaftaran = "Terdaftar"
         self.pendaftaran_kp.save()
 
-        response = self.client.get(reverse("input_detil:no_pending_registration"))
-        self.assertEqual(response.status_code, 200)  # Should render the correct page
+        response = self.client.get(reverse("input_detil:input_detil_kp_form"))
+        self.assertRedirects(response, reverse("input_detil:no_pending_registration"))
 
     def test_form_save_with_commit_false(self):
-        """Test that save(commit=False) updates instance but does not save to DB."""
+        """Form.save(commit=False) tidak langsung menyimpan ke DB."""
         form_data = {
             "role": "Intern",
             "total_jam_kerja": 300,
@@ -244,6 +239,6 @@ class InputDetilKPFormTests(TestCase):
         updated_pendaftaran = form.save(commit=False)
         self.assertEqual(updated_pendaftaran.penyelia.nama, "Commit Test")
 
-        # Ensure the database hasn't been updated yet
+        # DB belum diperbarui
         self.pendaftaran_kp.refresh_from_db()
         self.assertNotEqual(self.pendaftaran_kp.penyelia.nama, "Commit Test")
