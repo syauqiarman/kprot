@@ -8,24 +8,22 @@ from input_detil.models import Penyelia, PendaftaranKP, PendaftaranMBKM, Laporan
 # Create your views here.
 @login_required
 @require_GET
-def lihat_laporan_kegiatan(request, program, mahasiswa_id):
+def lihat_laporan_kegiatan(request, program, mahasiswa_id, pendaftaran_id):
     mahasiswa = get_object_or_404(Mahasiswa, id=mahasiswa_id)
-    
     # check if user penyelia
     if not is_penyelia(request.user):
         return JsonResponse({'error': 'Unauthorized'}, status=403)
   
-    # get pendaftaran
     pendaftaran = None
     if program == 'kp':
-        pendaftaran = get_object_or_404(PendaftaranKP, mahasiswa=mahasiswa)
+        pendaftaran = get_object_or_404(PendaftaranKP, id=pendaftaran_id)
     elif program == 'mbkm':
-        pendaftaran = get_object_or_404(PendaftaranMBKM, mahasiswa=mahasiswa)
+        pendaftaran = get_object_or_404(PendaftaranMBKM, id=pendaftaran_id)
     else:
         return JsonResponse({'error': 'Invalid program'}, status=404)
     
     # fetch laporan
-    laporan = fetch_laporan(request, mahasiswa_id, program)
+    laporan = fetch_laporan(request, pendaftaran_id, program)
     
     context = {
         'laporan': laporan,
@@ -61,7 +59,6 @@ def persetujuan_laporan(request, program, id_mahasiswa):
 
     mahasiswa = get_object_or_404(Mahasiswa, id=id_mahasiswa)
     semester_aktif = Semester.objects.filter(aktif=True).first()
-    print(semester_aktif.nama)
 
     # Ambil pendaftaran sesuai program
     if program == 'kp':
@@ -108,10 +105,12 @@ def persetujuan_laporan(request, program, id_mahasiswa):
 def is_penyelia(user):
     return Penyelia.objects.filter(user=user).exists()
 
-def fetch_laporan(request, mahasiswa_id, program):
+def fetch_laporan(request, pendaftaran_id, program):
     if program == 'kp':
-        this_laporan = LaporanKP.objects.filter(pendaftaran__mahasiswa__id=mahasiswa_id).first()
+        # this_laporan = LaporanKP.objects.filter(pendaftaran__mahasiswa__id=mahasiswa_id).first()
+        this_laporan = LaporanKP.objects.filter(pendaftaran__id=pendaftaran_id).first()
     elif program == 'mbkm':
-        this_laporan = LaporanMBKM.objects.filter(pendaftaran__mahasiswa__id=mahasiswa_id).first()
+        # this_laporan = LaporanMBKM.objects.filter(pendaftaran__mahasiswa__id=mahasiswa_id).first()
+        this_laporan = LaporanMBKM.objects.filter(pendaftaran__id=pendaftaran_id).first()
     
     return this_laporan
