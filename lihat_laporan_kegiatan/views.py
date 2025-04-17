@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
+from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_GET, require_POST
@@ -23,7 +24,7 @@ def lihat_laporan_kegiatan(request, program, mahasiswa_id, pendaftaran_id):
         return JsonResponse({'error': 'Invalid program'}, status=404)
     
     # fetch laporan
-    laporan = fetch_laporan(request, pendaftaran_id, program)
+    laporan = fetch_laporan(pendaftaran_id, program)
     
     context = {
         'laporan': laporan,
@@ -67,21 +68,22 @@ def persetujuan_laporan(request, program, id_mahasiswa):
         pendaftaran = PendaftaranMBKM.objects.filter(mahasiswa=mahasiswa).first()
     else:
         messages.error(request, 'Program tidak valid.')
-        return redirect(request.META.get('HTTP_REFERER'))
+        return redirect(request.META.get('HTTP_REFERER', reverse('lihat_laporan_kegiatan:temp_dashboard_penyelia')))
 
     if pendaftaran is None:
         messages.error(request, 'Pendaftaran tidak ditemukan.')
-        return redirect(request.META.get('HTTP_REFERER'))
+        return redirect(request.META.get('HTTP_REFERER', reverse('lihat_laporan_kegiatan:temp_dashboard_penyelia')))
 
     # Cek apakah semester pendaftaran adalah semester aktif
     if not semester_aktif or pendaftaran.semester != semester_aktif:
         messages.error(request, 'Persetujuan hanya dapat dilakukan pada semester aktif.')
-        return redirect(request.META.get('HTTP_REFERER'))
+        # return redirect(request.META.get('HTTP_REFERER'))
+        return redirect(request.META.get('HTTP_REFERER', reverse('lihat_laporan_kegiatan:temp_dashboard_penyelia')))
 
-    laporan = fetch_laporan(request, id_mahasiswa, program)
+    laporan = fetch_laporan(pendaftaran.id, program)
     if laporan is None:
         messages.error(request, 'Laporan tidak ditemukan.')
-        return redirect(request.META.get('HTTP_REFERER'))
+        return redirect(request.META.get('HTTP_REFERER', reverse('lihat_laporan_kegiatan:temp_dashboard_penyelia')))
 
     if action == 'approve':
         laporan.status_persetujuan_penyelia = 'Disetujui'
@@ -98,19 +100,17 @@ def persetujuan_laporan(request, program, id_mahasiswa):
     else:
         messages.error(request, 'Aksi tidak valid.')
 
-    return redirect(request.META.get('HTTP_REFERER'))
+    return redirect(request.META.get('HTTP_REFERER', reverse('lihat_laporan_kegiatan:temp_dashboard_penyelia')))
 
 
 # decorator design pattern
 def is_penyelia(user):
     return Penyelia.objects.filter(user=user).exists()
 
-def fetch_laporan(request, pendaftaran_id, program):
+def fetch_laporan(pendaftaran_id, program):
     if program == 'kp':
-        # this_laporan = LaporanKP.objects.filter(pendaftaran__mahasiswa__id=mahasiswa_id).first()
         this_laporan = LaporanKP.objects.filter(pendaftaran__id=pendaftaran_id).first()
     elif program == 'mbkm':
-        # this_laporan = LaporanMBKM.objects.filter(pendaftaran__mahasiswa__id=mahasiswa_id).first()
         this_laporan = LaporanMBKM.objects.filter(pendaftaran__id=pendaftaran_id).first()
     
     return this_laporan
