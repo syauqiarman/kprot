@@ -22,26 +22,28 @@ def create_log(request):
             )
         except PendaftaranMBKM.DoesNotExist:
             messages.warning(request, "Anda belum memiliki program yang aktif")
-            return redirect(request.META.get('HTTP_REFERER', '/'))
+            return redirect('home_mahasiswa')
 
     if request.method == 'POST':
         form = LogMingguanForm(request.POST, program=program)
-        
         if form.is_valid():
             log = form.save(commit=False)
+            
+            # Assign program
             if isinstance(program, PendaftaranKP):
                 log.pendaftaran_kp = program
             else:
                 log.pendaftaran_mbkm = program
+            
+            # Simpan pertama kali untuk mendapatkan PK
             log.save()
-
-            # Create hari objects first
+            
+            # Buat hari-hari
             start_date = form.cleaned_data['tanggal_mulai']
             end_date = form.cleaned_data['tanggal_selesai']
             delta = (end_date - start_date).days + 1
-            
-            # Create all hari objects
             hari_list = []
+            
             for i in range(delta):
                 current_date = start_date + timedelta(days=i)
                 hari = Hari.objects.create(
@@ -49,9 +51,10 @@ def create_log(request):
                     tanggal=current_date
                 )
                 hari_list.append(hari)
-
+            
             total_jam = 0
-            # Process activities for each day
+            
+            # Proses aktivitas untuk setiap hari
             for i, hari in enumerate(hari_list):
                 AktivitasFormSet = inlineformset_factory(
                     Hari,
@@ -70,33 +73,30 @@ def create_log(request):
                 )
                 
                 if aktivitas_formset.is_valid():
-                    aktivitas_formset.save()
-                    # Hitung total jam
-                    for aktivitas in aktivitas_formset.save(commit=False):
-                        if not aktivitas.pk:  # Hanya hitung yang baru
-                            total_jam += aktivitas.durasi
+                    aktivitas_instances = aktivitas_formset.save(commit=False)
+                    for aktivitas in aktivitas_instances:
+                        aktivitas.hari = hari  # Pastikan relasi terisi
+                        aktivitas.save()
+                        total_jam += aktivitas.durasi
                 else:
                     log.delete()
-                    error_messages = []
-                    for error in aktivitas_formset.errors:
-                        error_messages.extend(error.values())
-                    messages.error(request, f"Error aktivitas hari {i+1}: {', '.join(error_messages)}")
+                    messages.error(request, f"Error di hari ke-{i+1}: {aktivitas_formset.errors}")
                     return redirect('LogMahasiswa:create_log')
-
+            
+            # Update total jam
             log.total_jam = total_jam
             log.save()
             
-            messages.success(request, "Log mingguan berhasil disimpan!")
+            messages.success(request, "Log berhasil disimpan!")
             return redirect('LogMahasiswa:log_detail')
         else:
-            for error in form.non_field_errors():
-                messages.error(request, error)
+            messages.error(request, "Terjadi kesalahan pada form log")
     else:
         form = LogMingguanForm(program=program)
-
+    
     return render(request, 'log_form.html', {
         'form': form,
-        'program': program
+        'program': program,
     })
 
 def log_detail(request):
@@ -127,7 +127,7 @@ def log_detail(request):
         messages.info(request, "Belum ada log mingguan yang tercatat.")
 
     # Hitung total jam dari semua log
-    total_jam = logs.aggregate(total=Sum('total_jam'))['total'] or 0.0
+    total_jam = sum(log.calculate_total_jam() for log in logs)
     
     return render(request, 'log_detail.html', {
         'program': program,

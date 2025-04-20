@@ -340,15 +340,19 @@ class LogMingguan(models.Model):
     def calculate_total_jam(self):
         total = 0
         for hari in self.hari.all():
-            for aktivitas in hari.aktivitas.all():
-                total += aktivitas.durasi
+            total += sum(aktivitas.durasi for aktivitas in hari.aktivitas.all())
         return total
         
     def __str__(self):
         return f"Log {self.tanggal_mulai} - {self.tanggal_selesai}"
     
     def save(self, *args, **kwargs):
-        self.full_clean()
+        # Simpan pertama kali untuk mendapatkan PK
+        if not self.pk:
+            super().save(*args, **kwargs)
+        
+        # Hitung ulang total jam
+        self.total_jam = self.calculate_total_jam()
         super().save(*args, **kwargs)
 
 class Hari(models.Model):
@@ -365,6 +369,9 @@ class Aktivitas(models.Model):
     jam_selesai = models.TimeField()
     deskripsi = models.TextField()
     
+    class Meta:
+        ordering = ['jam_mulai']
+        
     @property
     def durasi(self):
         start = datetime.combine(self.hari.tanggal, self.jam_mulai)

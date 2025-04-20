@@ -102,27 +102,28 @@
                             Total Jam Kerja: 
                             <span class="text-blue-600">{{ log.total_jam|floatformat:2 }} Jam</span>
                         </p>
-                        {% if log.status_persetujuan == 'ditolak' %}
-                        <p class="text-red-600 mt-2">Alasan Penolakan: {{ log.alasan_penolakan }}</p>
-                        {% endif %}
                     </div>
-
+                    
                     <h3 class="text-lg font-semibold mb-4">Aktivitas Harian</h3>
                     <div class="space-y-4">
-                        {% for hari in log.hari.all %}
-                        <div class="border rounded p-4">
-                            <h4 class="font-semibold mb-2">{{ hari.tanggal|date:"d M Y" }}</h4>
+                        {% for hari in log.hari.all|dictsort:"tanggal" %}
+                        <div class="border rounded p-4 bg-gray-50">
+                            <h4 class="font-semibold mb-2">{{ hari.tanggal|date:"d F Y" }}</h4>
                             <div class="space-y-2">
                                 {% for aktivitas in hari.aktivitas.all %}
-                                <div class="grid grid-cols-12 gap-4 border-b pb-2">
-                                    <div class="col-span-2">
-                                        <span class="text-sm">{{ aktivitas.jam_mulai|time:"H:i" }} - {{ aktivitas.jam_selesai|time:"H:i" }}</span>
+                                <div class="grid grid-cols-12 gap-4 items-center border-b pb-2">
+                                    <div class="col-span-3">
+                                        <span class="text-sm font-medium">
+                                            {{ aktivitas.jam_mulai|time:"H:i" }} - {{ aktivitas.jam_selesai|time:"H:i" }}
+                                        </span>
                                     </div>
-                                    <div class="col-span-8">
+                                    <div class="col-span-7">
                                         <p class="text-sm">{{ aktivitas.deskripsi }}</p>
                                     </div>
-                                    <div class="col-span-2">
-                                        <span class="text-sm">{{ aktivitas.durasi|floatformat:2 }} Jam</span>
+                                    <div class="col-span-2 text-right">
+                                        <span class="text-sm font-medium text-blue-600">
+                                            {{ aktivitas.durasi|floatformat:2 }} Jam
+                                        </span>
                                     </div>
                                 </div>
                                 {% endfor %}
