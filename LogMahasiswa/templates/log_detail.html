@@ -106,28 +106,26 @@
                         <p class="text-red-600 mt-2">Alasan Penolakan: {{ log.alasan_penolakan }}</p>
                         {% endif %}
                     </div>
-    
+
                     <h3 class="text-lg font-semibold mb-4">Aktivitas Harian</h3>
                     <div class="space-y-4">
-                        {% for aktivitas in log.aktivitas_harian.all %}
+                        {% for hari in log.hari.all %}
                         <div class="border rounded p-4">
-                            <div class="grid grid-cols-3 gap-4">
-                                <div>
-                                    <p class="text-sm text-gray-600">Tanggal</p>
-                                    <p class="font-medium">{{ aktivitas.tanggal|date:"d M Y" }}</p>
+                            <h4 class="font-semibold mb-2">{{ hari.tanggal|date:"d M Y" }}</h4>
+                            <div class="space-y-2">
+                                {% for aktivitas in hari.aktivitas.all %}
+                                <div class="grid grid-cols-12 gap-4 border-b pb-2">
+                                    <div class="col-span-2">
+                                        <span class="text-sm">{{ aktivitas.jam_mulai|time:"H:i" }} - {{ aktivitas.jam_selesai|time:"H:i" }}</span>
+                                    </div>
+                                    <div class="col-span-8">
+                                        <p class="text-sm">{{ aktivitas.deskripsi }}</p>
+                                    </div>
+                                    <div class="col-span-2">
+                                        <span class="text-sm">{{ aktivitas.durasi|floatformat:2 }} Jam</span>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p class="text-sm text-gray-600">Waktu</p>
-                                    <p class="font-medium">{{ aktivitas.jam_mulai|time:"H:i" }} - {{ aktivitas.jam_selesai|time:"H:i" }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-sm text-gray-600">Durasi</p>
-                                    <p class="font-medium">{{ aktivitas.durasi|floatformat:2 }} Jam</p>
-                                </div>
-                                <div class="col-span-3">
-                                    <p class="text-sm text-gray-600">Deskripsi</p>
-                                    <p class="font-medium">{{ aktivitas.deskripsi }}</p>
-                                </div>
+                                {% endfor %}
                             </div>
                         </div>
                         {% endfor %}

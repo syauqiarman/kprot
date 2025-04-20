@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
-from database.models import Mahasiswa, ProgramMBKM, PendaftaranMBKM, Semester, Penyelia, Dosen, PembimbingAkademik, Kaprodi, ManajemenFakultas, PendaftaranKP, LogMingguan, AktivitasHarian
+from database.models import Mahasiswa, ProgramMBKM, PendaftaranMBKM, Semester, Penyelia, Dosen, PembimbingAkademik, Kaprodi, ManajemenFakultas, PendaftaranKP
 
 # Mendaftarkan semua model ke admin
 @admin.register(Mahasiswa)
@@ -74,33 +74,3 @@ class ProgramTypeFilter(SimpleListFilter):
         elif self.value() == 'mbkm':
             return queryset.filter(pendaftaran_mbkm__isnull=False)
         return queryset
-
-@admin.register(LogMingguan)
-class LogMingguanAdmin(admin.ModelAdmin):
-    list_display = ('get_program', 'tanggal_mulai', 'tanggal_selesai', 'status_persetujuan', 'total_jam')
-    search_fields = (
-        'pendaftaran_kp__mahasiswa__nama',
-        'pendaftaran_mbkm__mahasiswa__nama',
-        'status_persetujuan',
-    )
-    list_filter = (ProgramTypeFilter, 'status_persetujuan')
-
-    def get_program(self, obj):
-        """Menampilkan program terkait (KP atau MBKM)"""
-        return obj.program
-    get_program.short_description = 'Program Terkait'
-
-@admin.register(AktivitasHarian)
-class AktivitasHarianAdmin(admin.ModelAdmin):
-    list_display = ('log_mingguan', 'tanggal', 'jam_mulai', 'jam_selesai', 'get_durasi', 'deskripsi')
-    search_fields = (
-        'deskripsi',
-        'log_mingguan__pendaftaran_kp__mahasiswa__nama',
-        'log_mingguan__pendaftaran_mbkm__mahasiswa__nama',
-    )
-    list_filter = ('tanggal',)
-
-    def get_durasi(self, obj):
-        """Menampilkan durasi dengan format angka 2 desimal"""
-        return f"{obj.durasi:.2f} jam"
-    get_durasi.short_description = 'Durasi'

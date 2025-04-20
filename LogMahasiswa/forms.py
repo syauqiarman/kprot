@@ -1,5 +1,5 @@
 from django import forms
-from database.models import LogMingguan, AktivitasHarian, PendaftaranKP, PendaftaranMBKM
+from database.models import Aktivitas, Hari, LogMingguan, PendaftaranKP, PendaftaranMBKM
 from django.forms import ValidationError, inlineformset_factory, BaseInlineFormSet
 
 class LogMingguanForm(forms.ModelForm):
@@ -94,64 +94,60 @@ class LogMingguanForm(forms.ModelForm):
             instance.save()
         return instance
 
-class BaseAktivitasHarianFormSet(BaseInlineFormSet):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.log_mingguan = self.instance  # Simpan instance LogMingguan
-
-    def _construct_form(self, i, **kwargs):
-        kwargs['log_mingguan'] = self.log_mingguan  # Pass ke setiap form
-        return super()._construct_form(i, **kwargs)
-
-class AktivitasHarianForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        self.log_mingguan = kwargs.pop('log_mingguan', None)  # Terima log_mingguan
-        super().__init__(*args, **kwargs)
-    
+class AktivitasForm(forms.ModelForm):
     class Meta:
-        model = AktivitasHarian
-        fields = ['tanggal', 'jam_mulai', 'jam_selesai', 'deskripsi']
+        model = Aktivitas
+        fields = ['jam_mulai', 'jam_selesai', 'deskripsi']
         widgets = {
-            'tanggal': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'border rounded p-2 w-full'
-            }),
-            'jam_mulai': forms.TimeInput(attrs={
-                'type': 'time',
-                'class': 'border rounded p-2 w-full', 
-                'step': '60'
-            }),
-            'jam_selesai': forms.TimeInput(attrs={
-                'type': 'time',
-                'class': 'border rounded p-2 w-full', 
-                'step': '60'
-            }),
-            'deskripsi': forms.Textarea(attrs={
-                'rows': 2,
-                'class': 'border rounded p-2 w-full'
-            }),
+            'jam_mulai': forms.TimeInput(attrs={'type': 'time', 'class': 'border rounded p-2 w-full'}),
+            'jam_selesai': forms.TimeInput(attrs={'type': 'time', 'class': 'border rounded p-2 w-full'}),
+            'deskripsi': forms.Textarea(attrs={'rows': 2, 'class': 'border rounded p-2 w-full'}),
         }
-    
+
     def clean(self):
         cleaned_data = super().clean()
-        tanggal = cleaned_data.get('tanggal')
-        log = self.log_mingguan  # Gunakan log_mingguan dari formset
-        
-        if log.tanggal_mulai is not None and log.tanggal_selesai is not None:
-            if not (log.tanggal_mulai <= tanggal <= log.tanggal_selesai):
-                self.add_error('tanggal', "Tanggal aktivitas harus dalam periode log mingguan")
-        
         jam_mulai = cleaned_data.get('jam_mulai')
         jam_selesai = cleaned_data.get('jam_selesai')
-        if jam_mulai and jam_selesai and jam_mulai >= jam_selesai:
-            self.add_error('jam_mulai', "Jam mulai harus sebelum jam selesai")
+        
+        if jam_mulai and jam_selesai:
+            if jam_mulai >= jam_selesai:
+                self.add_error('jam_selesai', 'Jam selesai harus setelah jam mulai')
+            
+            # Cek overlap waktu dalam hari yang sama
+            existing_aktivitas = Aktivitas.objects.filter(
+                hari=self.instance.hari,
+                jam_mulai__lt=jam_selesai,
+                jam_selesai__gt=jam_mulai
+            ).exclude(pk=self.instance.pk)
+            
+            if existing_aktivitas.exists():
+                self.add_error(None, 'Waktu aktivitas bertabrakan dengan aktivitas lain')
 
-AktivitasHarianFormSet = inlineformset_factory(
+AktivitasFormSet = inlineformset_factory(
+    Hari,
+    Aktivitas,
+    form=AktivitasForm,
+    extra=1,
+    can_delete=True,
+    min_num=1,
+    validate_min=True
+)
+
+class BaseHariFormSet(BaseInlineFormSet):
+    def __init__(self, *args, **kwargs):
+        self.log_mingguan = kwargs.pop('log_mingguan', None)
+        super().__init__(*args, **kwargs)
+
+    def get_form_kwargs(self, index):
+        kwargs = super().get_form_kwargs(index)
+        kwargs['log_mingguan'] = self.log_mingguan
+        return kwargs
+
+HariFormSet = inlineformset_factory(
     LogMingguan,
-    AktivitasHarian,
-    form=AktivitasHarianForm,
-    extra=7,
+    Hari,
+    fields=('tanggal',),
+    extra=0,
     can_delete=False,
-    validate_min=True,
-    formset=BaseAktivitasHarianFormSet  # Gunakan formset custom
+    formset=BaseHariFormSet
 )

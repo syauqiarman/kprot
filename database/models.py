@@ -338,7 +338,11 @@ class LogMingguan(models.Model):
         return self.pendaftaran_kp or self.pendaftaran_mbkm
     
     def calculate_total_jam(self):
-        return sum(aktivitas.durasi for aktivitas in self.aktivitas_harian.all())
+        total = 0
+        for hari in self.hari.all():
+            for aktivitas in hari.aktivitas.all():
+                total += aktivitas.durasi
+        return total
         
     def __str__(self):
         return f"Log {self.tanggal_mulai} - {self.tanggal_selesai}"
@@ -347,19 +351,26 @@ class LogMingguan(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
-class AktivitasHarian(models.Model):
-    log_mingguan = models.ForeignKey(LogMingguan, on_delete=models.CASCADE, related_name='aktivitas_harian')
+class Hari(models.Model):
+    log_mingguan = models.ForeignKey(LogMingguan, on_delete=models.CASCADE, related_name='hari')
     tanggal = models.DateField()
+    
+    class Meta:
+        unique_together = ('log_mingguan', 'tanggal')
+        ordering = ['tanggal']
+
+class Aktivitas(models.Model):
+    hari = models.ForeignKey(Hari, on_delete=models.CASCADE, related_name='aktivitas')
     jam_mulai = models.TimeField()
     jam_selesai = models.TimeField()
     deskripsi = models.TextField()
     
     @property
     def durasi(self):
-        start = datetime.combine(self.tanggal, self.jam_mulai)
-        end = datetime.combine(self.tanggal, self.jam_selesai)
+        start = datetime.combine(self.hari.tanggal, self.jam_mulai)
+        end = datetime.combine(self.hari.tanggal, self.jam_selesai)
         delta = end - start
-        return delta.total_seconds() / 3600 
+        return delta.total_seconds() / 3600
 
 ############## Validators that can't be in validators.py ##############
 

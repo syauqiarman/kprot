@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta
+from django.forms import inlineformset_factory
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from database.models import AktivitasHarian, LogMingguan, PendaftaranKP, PendaftaranMBKM
+from database.models import Aktivitas, Hari, LogMingguan, PendaftaranKP, PendaftaranMBKM
 from django.db.models import Sum
-from LogMahasiswa.forms import AktivitasHarianForm, LogMingguanForm, AktivitasHarianFormSet
+from LogMahasiswa.forms import AktivitasForm, LogMingguanForm, HariFormSet, AktivitasFormSet
 
 def create_log(request):
     try:
@@ -25,61 +26,77 @@ def create_log(request):
 
     if request.method == 'POST':
         form = LogMingguanForm(request.POST, program=program)
-        post_data = request.POST.copy()
-        tanggal_mulai_str = post_data.get('tanggal_mulai')
-        tanggal_selesai_str = post_data.get('tanggal_selesai')
-        dates = []
-        num_days = 7  # Default 7 hari jika tidak ada tanggal
-
-        if tanggal_mulai_str and tanggal_selesai_str:
-            try:
-                start_date = datetime.strptime(tanggal_mulai_str, "%Y-%m-%d").date()
-                end_date = datetime.strptime(tanggal_selesai_str, "%Y-%m-%d").date()
-                num_days = (end_date - start_date).days + 1
-                dates = [start_date + timedelta(days=i) for i in range(num_days)]
-            except:
-                pass  # Tetap gunakan default jika parsing gagal
-
-        # Sesuaikan data POST untuk formset
-        post_data['aktivitas_harian-TOTAL_FORMS'] = num_days
-        form = LogMingguanForm(post_data, program=program)
         
         if form.is_valid():
-            # Simpan log terlebih dahulu
             log = form.save(commit=False)
             if isinstance(program, PendaftaranKP):
                 log.pendaftaran_kp = program
             else:
                 log.pendaftaran_mbkm = program
-            log.save()  # Simpan untuk mendapatkan ID
-            
-            # Sekarang proses formset dengan instance yang sudah ada
-            formset = AktivitasHarianFormSet(post_data, instance=log)
-            if formset.is_valid():
-                formset.save()
+            log.save()
 
-                log.total_jam = log.calculate_total_jam()
-                log.save()
+            # Create hari objects first
+            start_date = form.cleaned_data['tanggal_mulai']
+            end_date = form.cleaned_data['tanggal_selesai']
+            delta = (end_date - start_date).days + 1
+            
+            # Create all hari objects
+            hari_list = []
+            for i in range(delta):
+                current_date = start_date + timedelta(days=i)
+                hari = Hari.objects.create(
+                    log_mingguan=log,
+                    tanggal=current_date
+                )
+                hari_list.append(hari)
+
+            total_jam = 0
+            # Process activities for each day
+            for i, hari in enumerate(hari_list):
+                AktivitasFormSet = inlineformset_factory(
+                    Hari,
+                    Aktivitas,
+                    form=AktivitasForm,
+                    extra=0,
+                    can_delete=True,
+                    min_num=1,
+                    validate_min=True
+                )
                 
-                messages.success(request, "Log mingguan berhasil disimpan!")
-                return redirect('LogMahasiswa:log_detail')
-            else:
-                # Hapus log jika formset tidak valid
-                log.delete()
-                messages.error(request, "Terjadi kesalahan pada aktivitas harian")
+                aktivitas_formset = AktivitasFormSet(
+                    request.POST,
+                    instance=hari,
+                    prefix=f'day-{i}'
+                )
+                
+                if aktivitas_formset.is_valid():
+                    aktivitas_formset.save()
+                    # Hitung total jam
+                    for aktivitas in aktivitas_formset.save(commit=False):
+                        if not aktivitas.pk:  # Hanya hitung yang baru
+                            total_jam += aktivitas.durasi
+                else:
+                    log.delete()
+                    error_messages = []
+                    for error in aktivitas_formset.errors:
+                        error_messages.extend(error.values())
+                    messages.error(request, f"Error aktivitas hari {i+1}: {', '.join(error_messages)}")
+                    return redirect('LogMahasiswa:create_log')
+
+            log.total_jam = total_jam
+            log.save()
+            
+            messages.success(request, "Log mingguan berhasil disimpan!")
+            return redirect('LogMahasiswa:log_detail')
         else:
             for error in form.non_field_errors():
                 messages.error(request, error)
-            formset = AktivitasHarianFormSet(post_data)
     else:
         form = LogMingguanForm(program=program)
-        formset = AktivitasHarianFormSet()
 
     return render(request, 'log_form.html', {
         'form': form,
-        'formset': formset,
-        'program': program,
-        'zipped_data': zip(formset, dates if request.method == 'POST' else [])
+        'program': program
     })
 
 def log_detail(request):

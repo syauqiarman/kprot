@@ -8,6 +8,8 @@
 </head>
 <body class="bg-gray-100 p-5">
     <div class="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold mb-6 text-gray-800">Buat Log Mingguan</h1>
+        
         {% if messages %}
         <div class="mb-4 space-y-2">
             {% for message in messages %}
@@ -17,8 +19,7 @@
             {% endfor %}
         </div>
         {% endif %}
-        <h1 class="text-2xl font-bold mb-6 text-gray-800">Buat Log Mingguan</h1>
-        
+    
         <form method="post" id="logForm">
             {% csrf_token %}
             
@@ -76,41 +77,8 @@
             <div class="mb-6">
                 <h3 class="text-lg font-semibold mb-4">Aktivitas Harian</h3>
                 
-                {{ formset.management_form }}
                 <div id="activity-forms">
-                    {% for form, date in zipped_data %}
-                    <div class="activity-form border-b pb-4 mb-4">
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
-                                <input type="date" 
-                                    name="aktivitas_harian-{{ forloop.counter0 }}-tanggal" 
-                                    value="{{ date|date:'Y-m-d' }}" 
-                                    class="border rounded p-2 w-full bg-gray-100"
-                                    readonly>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Jam Mulai</label>
-                                {{ form.jam_mulai }}
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Jam Selesai</label>
-                                {{ form.jam_selesai }}
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Deskripsi</label>
-                                {{ form.deskripsi }}
-                            </div>
-                        </div>
-                        {% if form.errors %}
-                        <div class="text-red-600 text-sm mt-2">
-                            {% for error in form.errors.values %}
-                                {{ error.as_text }}
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
+                    <!-- Akan diisi oleh JavaScript -->
                 </div>
             </div>
     
@@ -119,107 +87,84 @@
             </button>
         </form>
     </div>
-
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const startDateInput = document.querySelector('input[name="tanggal_mulai"]');
             const endDateInput = document.querySelector('input[name="tanggal_selesai"]');
-            
-            function enforceMax7Days() {
-                if (startDateInput.value && endDateInput.value) {
-                    const startDate = new Date(startDateInput.value);
-                    const endDate = new Date(endDateInput.value);
-                    const diffDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-                    
-                    // Jika lebih dari 7 hari, reset end date ke start + 6 hari
-                    if (diffDays > 7) {
-                        const newEndDate = new Date(startDate);
-                        newEndDate.setDate(newEndDate.getDate() + 6);
-                        endDateInput.value = newEndDate.toISOString().split('T')[0];
-                    }
-                }
-            }
-
-            function updateDateConstraints() {
-                if (startDateInput.value) {
-                    const startDate = new Date(startDateInput.value);
-                    const maxEndDate = new Date(startDate);
-                    maxEndDate.setDate(startDate.getDate() + 6);
-                    
-                    // Set max attribute untuk end date
-                    endDateInput.max = maxEndDate.toISOString().split('T')[0];
-                    endDateInput.min = startDate.toISOString().split('T')[0];
-                }
-            }
-
-            startDateInput.addEventListener('change', function() {
-                updateDateConstraints();
-                enforceMax7Days();
-                updateForms();
-            });
-
-            endDateInput.addEventListener('change', function() {
-                enforceMax7Days();
-                updateForms();
-            });
-
+            const activityForms = document.getElementById('activity-forms');
+        
             function updateForms() {
+                if (!startDateInput.value || !endDateInput.value) return;
+                
                 const startDate = new Date(startDateInput.value);
                 const endDate = new Date(endDateInput.value);
-                const diffDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+                const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
                 
-                if (diffDays > 0) {
-                    const form = document.getElementById('logForm');
-                    const totalForms = document.getElementById('id_aktivitas_harian-TOTAL_FORMS');
-                    totalForms.value = diffDays;
+                activityForms.innerHTML = '';
+                
+                for (let i = 0; i < days; i++) {
+                    const currentDate = new Date(startDate);
+                    currentDate.setDate(startDate.getDate() + i);
                     
-                    // Update hidden fields
-                    const managementForm = document.querySelector('[id$=TOTAL_FORMS]');
-                    managementForm.value = diffDays;
-                    
-                    // Generate new date fields
-                    const container = document.getElementById('activity-forms');
-                    container.innerHTML = '';
-                    
-                    for (let i = 0; i < diffDays; i++) {
-                        const date = new Date(startDate);
-                        date.setDate(date.getDate() + i);
-                        const dateString = date.toISOString().split('T')[0];
-                        
-                        const formHTML = `
-                            <div class="activity-form border-b pb-4 mb-4">
-                                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal</label>
-                                        <input type="date" name="aktivitas_harian-${i}-tanggal" 
-                                               value="${dateString}" 
-                                               class="border rounded p-2 w-full bg-gray-100" readonly>
+                    const dayHTML = `
+                        <div class="day-container border rounded p-4 mb-4 bg-gray-50">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="font-semibold">${currentDate.toLocaleDateString('id-ID')}</h4>
+                                <button type="button" class="add-activity bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
+                                    Tambah Aktivitas
+                                </button>
+                            </div>
+                            <div class="activity-forms" data-day="${i}">
+                                <!-- Tambahkan management form -->
+                                <input type="hidden" name="day-${i}-TOTAL_FORMS" value="1">
+                                <input type="hidden" name="day-${i}-INITIAL_FORMS" value="0">
+                                <input type="hidden" name="day-${i}-MIN_NUM_FORMS" value="1">
+                                <input type="hidden" name="day-${i}-MAX_NUM_FORMS" value="1000">
+                                
+                                <div class="activity-form grid grid-cols-12 gap-4 items-end">
+                                    <div class="col-span-3">
+                                        <input type="time" name="day-${i}-0-jam_mulai" class="border rounded p-2 w-full" required>
                                     </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Jam Mulai</label>
-                                        <input type="time" name="aktivitas_harian-${i}-jam_mulai" 
-                                               class="border rounded p-2 w-full" required>
+                                    <div class="col-span-3">
+                                        <input type="time" name="day-${i}-0-jam_selesai" class="border rounded p-2 w-full" required>
                                     </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Jam Selesai</label>
-                                        <input type="time" name="aktivitas_harian-${i}-jam_selesai" 
-                                               class="border rounded p-2 w-full" required>
+                                    <div class="col-span-5">
+                                        <textarea name="day-${i}-0-deskripsi" class="border rounded p-2 w-full" rows="2" required></textarea>
                                     </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Deskripsi</label>
-                                        <textarea name="aktivitas_harian-${i}-deskripsi" 
-                                                  class="border rounded p-2 w-full" rows="2" required></textarea>
+                                    <div class="col-span-1">
+                                        <button type="button" class="remove-activity text-red-500 hover:text-red-700">×</button>
                                     </div>
                                 </div>
-                            </div>`;
-                        container.insertAdjacentHTML('beforeend', formHTML);
-                    }
+                            </div>
+                        </div>
+                    `;
+                    activityForms.insertAdjacentHTML('beforeend', dayHTML);
                 }
+                
+                // Tambahkan event listener
+                document.querySelectorAll('.add-activity').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const container = this.closest('.day-container').querySelector('.activity-forms');
+                        const totalForms = parseInt(container.querySelector('[name$="-TOTAL_FORMS"]').value);
+                        
+                        // Update total forms
+                        container.querySelector('[name$="-TOTAL_FORMS"]').value = totalForms + 1;
+                        
+                        const newForm = container.querySelector('.activity-form').cloneNode(true);
+                        newForm.querySelectorAll('input, textarea').forEach(input => {
+                            input.name = input.name.replace(/-0-/, `-${totalForms}-`);
+                            input.value = '';
+                        });
+                        
+                        container.appendChild(newForm);
+                    });
+                });
             }
-        
+            
             startDateInput.addEventListener('change', updateForms);
             endDateInput.addEventListener('change', updateForms);
         });
-        </script>
+    </script>
 </body>
 </html>
