@@ -90,7 +90,8 @@ def create_log(request):
             messages.success(request, "Log berhasil disimpan!")
             return redirect('LogMahasiswa:log_detail')
         else:
-            messages.error(request, "Terjadi kesalahan pada form log")
+            for error in form.non_field_errors():
+                messages.error(request, error)
     else:
         form = LogMingguanForm(program=program)
     

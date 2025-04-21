@@ -146,14 +146,17 @@
                 document.querySelectorAll('.add-activity').forEach(button => {
                     button.addEventListener('click', function() {
                         const container = this.closest('.day-container').querySelector('.activity-forms');
-                        const totalForms = parseInt(container.querySelector('[name$="-TOTAL_FORMS"]').value);
-                        
-                        // Update total forms
-                        container.querySelector('[name$="-TOTAL_FORMS"]').value = totalForms + 1;
-                        
+                        const totalFormsInput = container.querySelector('[name$="-TOTAL_FORMS"]');
+                        let totalForms = parseInt(totalFormsInput.value);
+
+                        // Update TOTAL_FORMS
+                        totalFormsInput.value = totalForms + 1;
+
+                        // Clone form aktivitas
                         const newForm = container.querySelector('.activity-form').cloneNode(true);
                         newForm.querySelectorAll('input, textarea').forEach(input => {
-                            input.name = input.name.replace(/-0-/, `-${totalForms}-`);
+                            const newName = input.name.replace(/^(day-\d+)-\d+-(.*)$/, `$1-${totalForms}-$2`);
+                            input.name = newName;
                             input.value = '';
                         });
                         
