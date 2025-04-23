@@ -107,6 +107,8 @@ class AktivitasHarianForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.log_mingguan = kwargs.pop('log_mingguan', None)  # Terima log_mingguan
         super().__init__(*args, **kwargs)
+        # Nonaktifkan validasi tanggal jika sudah di-handle di log_mingguan
+        self.fields['tanggal'].required = False  # Karena di-set via JavaScript
     
     class Meta:
         model = AktivitasHarian

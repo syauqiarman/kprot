@@ -25,9 +25,8 @@ def create_log(request):
 
     if request.method == 'POST':
         form = LogMingguanForm(request.POST, program=program)
-        post_data = request.POST.copy()
-        tanggal_mulai_str = post_data.get('tanggal_mulai')
-        tanggal_selesai_str = post_data.get('tanggal_selesai')
+        tanggal_mulai_str = request.POST.get('tanggal_mulai')
+        tanggal_selesai_str = request.POST.get('tanggal_selesai')
         dates = []
         num_days = 7  # Default 7 hari jika tidak ada tanggal
 
@@ -39,10 +38,6 @@ def create_log(request):
                 dates = [start_date + timedelta(days=i) for i in range(num_days)]
             except:
                 pass  # Tetap gunakan default jika parsing gagal
-
-        # Sesuaikan data POST untuk formset
-        post_data['aktivitas_harian-TOTAL_FORMS'] = num_days
-        form = LogMingguanForm(post_data, program=program)
         
         if form.is_valid():
             # Simpan log terlebih dahulu
@@ -54,7 +49,7 @@ def create_log(request):
             log.save()  # Simpan untuk mendapatkan ID
             
             # Sekarang proses formset dengan instance yang sudah ada
-            formset = AktivitasHarianFormSet(post_data, instance=log)
+            formset = AktivitasHarianFormSet(request.POST, instance=log)
             if formset.is_valid():
                 formset.save()
 
@@ -70,7 +65,7 @@ def create_log(request):
         else:
             for error in form.non_field_errors():
                 messages.error(request, error)
-            formset = AktivitasHarianFormSet(post_data)
+            formset = AktivitasHarianFormSet(request.POST)
     else:
         form = LogMingguanForm(program=program)
         formset = AktivitasHarianFormSet()
