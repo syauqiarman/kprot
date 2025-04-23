@@ -110,7 +110,7 @@
             const endDateInput = document.querySelector('input[name="tanggal_selesai"]');
             const managementForm = document.getElementById('id_aktivitas_harian-TOTAL_FORMS');
             let formCount = 0; // Menghitung total form
-
+            
             function enforceMax7Days() {
                 if (startDateInput.value && endDateInput.value) {
                     const startDate = new Date(startDateInput.value);
@@ -138,58 +138,37 @@
                 }
             }
 
-            // Fungsi updateForms dengan penanganan error dari Django
             function updateForms() {
                 const startDate = new Date(startDateInput.value);
                 const endDate = new Date(endDateInput.value);
-                const diffDays = Math.floor((endDate - startDate) / 86400000) + 1;
+                const diffDays = Math.floor((endDate - startDate) / (86400000)) + 1;
                 const container = document.getElementById('activity-forms');
                 
                 container.innerHTML = '';
-                formCount = 0;
-
-                // Render tanggal
+                formCount = 0; // Reset form count
+                
                 for (let i = 0; i < diffDays; i++) {
                     const currentDate = new Date(startDate);
                     currentDate.setDate(currentDate.getDate() + i);
                     const dateString = currentDate.toISOString().split('T')[0];
-
-                    // Buat grup tanggal
+                    
                     const dateGroupHTML = `
                         <div class="date-group mb-6" data-date="${dateString}">
                             <div class="flex justify-between items-center mb-4 p-2 bg-gray-50 rounded">
-                                <span class="font-medium">${currentDate.toLocaleDateString('id-ID')}</span>
-                                <button type="button" 
-                                        onclick="addActivity('${dateString}')" 
-                                        class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
+                                <span class="font-medium">${currentDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                                <button type="button" onclick="addActivity('${dateString}')" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
                                     Tambah Aktivitas
                                 </button>
                             </div>
                             <div class="activity-container-${dateString} space-y-4"></div>
                         </div>`;
                     container.insertAdjacentHTML('beforeend', dateGroupHTML);
-
-                    // Render error dari server (jika ada)
-                    if (window.serverErrors) {
-                        window.serverErrors.forEach(errorData => {
-                            if (errorData.tanggal === dateString) {
-                                addActivity(dateString, {
-                                    jam_mulai: errorData.jam_mulai,
-                                    jam_selesai: errorData.jam_selesai,
-                                    deskripsi: errorData.deskripsi,
-                                    errors: errorData.errors
-                                });
-                            }
-                        });
-                    } else {
-                        addActivity(dateString);
-                    }
+                    
+                    // Tambahkan satu form awal per tanggal
+                    addActivity(dateString);
                 }
+                managementForm.value = formCount;
             }
-            // Inisialisasi error dari server (DIUBAH: Gunakan escapejs dan JSON)
-            window.serverErrors = JSON.parse('{{ formset.errors|escapejs|default:"[]" }}');
-
-            updateForms();
             
             // Fungsi untuk menambahkan aktivitas
             window.addActivity = function(dateString, initialData = {}) {
@@ -242,12 +221,10 @@
             
             // Event listeners untuk tanggal mulai/selesai (tetap sama)
             startDateInput.addEventListener('change', function() {
-                updateDateConstraints();
                 enforceMax7Days();
                 updateForms();
             });
             endDateInput.addEventListener('change', function() {
-                updateDateConstraints();
                 enforceMax7Days();
                 updateForms();
             });
