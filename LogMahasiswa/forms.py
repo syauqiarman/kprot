@@ -150,7 +150,7 @@ AktivitasHarianFormSet = inlineformset_factory(
     LogMingguan,
     AktivitasHarian,
     form=AktivitasHarianForm,
-    extra=7,
+    extra=0,
     can_delete=False,
     validate_min=True,
     formset=BaseAktivitasHarianFormSet  # Gunakan formset custom
