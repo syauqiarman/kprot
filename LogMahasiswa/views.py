@@ -4,6 +4,7 @@ from django.contrib import messages
 from database.models import AktivitasHarian, LogMingguan, PendaftaranKP, PendaftaranMBKM
 from django.db.models import Sum
 from LogMahasiswa.forms import AktivitasHarianForm, LogMingguanForm, AktivitasHarianFormSet
+from django.db.models import Prefetch
 
 def create_log(request):
     try:
@@ -97,9 +98,19 @@ def log_detail(request):
     
     # Ambil semua log terkait program
     if isinstance(program, PendaftaranKP):
-        logs = LogMingguan.objects.filter(pendaftaran_kp=program).order_by('-tanggal_mulai')
+        logs = LogMingguan.objects.filter(pendaftaran_kp=program).order_by('-tanggal_mulai').prefetch_related(
+            Prefetch(
+                'aktivitas_harian',
+                queryset=AktivitasHarian.objects.order_by('tanggal')
+            )
+        )
     else:
-        logs = LogMingguan.objects.filter(pendaftaran_mbkm=program).order_by('-tanggal_mulai')
+        logs = LogMingguan.objects.filter(pendaftaran_mbkm=program).order_by('-tanggal_mulai').prefetch_related(
+            Prefetch(
+                'aktivitas_harian',
+                queryset=AktivitasHarian.objects.order_by('tanggal')
+            )
+        )
     
     if not logs.exists():
         messages.info(request, "Belum ada log mingguan yang tercatat.")

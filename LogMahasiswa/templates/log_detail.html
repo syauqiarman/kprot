@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anda Sudah Mendaftar MBKM</title>
+    <title>Log Magang Mahasiswa</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 p-5">
-    <div class="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
+    <div class="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-md">
     
-        <!-- Header dengan Tombol Tambah -->
+        <!-- Header -->
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800">
                 Log Magang Mahasiswa
@@ -22,80 +22,62 @@
             {% endif %}
         </div>
 
-        {% if messages %}
-        <div class="mb-4 space-y-2">
-            {% for message in messages %}
-                <div class="p-3 rounded-lg {% if message.tags == 'error' %}bg-red-50 text-red-800{% else %}bg-blue-50 text-blue-800{% endif %}">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-    
         <!-- Informasi Pribadi -->
-        <div class="mb-6 bg-gray-50 p-6 rounded-lg shadow-sm">
-            <h2 class="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Informasi Pribadi</h2>
-            <div class="grid grid-cols-2 gap-4">
-            <div>
-                <div class="flex items-center">
-                <span class="w-32 font-medium text-gray-700">Nama:</span>
-                <span class="text-gray-900">{{ program.mahasiswa.nama }}</span>
+        <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div class="space-y-2">
+                    <div class="flex">
+                        <span class="w-24 font-medium">Nama:</span>
+                        <span>{{ program.mahasiswa.nama }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="w-24 font-medium">NPM:</span>
+                        <span>{{ program.mahasiswa.npm }}</span>
+                    </div>
                 </div>
-                <div class="flex items-center mt-3">
-                <span class="w-32 font-medium text-gray-700">NPM:</span>
-                <span class="text-gray-900">{{ program.mahasiswa.npm }}</span>
+                <div class="space-y-2">
+                    <div class="flex">
+                        <span class="w-24 font-medium">Perusahaan:</span>
+                        <span>{{ program.penyelia.perusahaan }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="w-24 font-medium">Role:</span>
+                        <span>{{ program.role }}</span>
+                    </div>
                 </div>
-            </div>
-            <div>
-                <div class="flex items-center">
-                <span class="w-32 font-medium text-gray-700">Perusahaan:</span>
-                <span class="text-gray-900">{{ program.penyelia.perusahaan }}</span>
-                </div>
-                <div class="flex items-center mt-3">
-                <span class="w-32 font-medium text-gray-700">Role:</span>
-                <span class="text-gray-900">{{ program.role }}</span>
-                </div>
-            </div>
             </div>
         </div>
 
-        <div class="mb-6 bg-blue-50 p-6 rounded-lg shadow-sm">
-            <h2 class="text-xl font-semibold text-blue-800 border-b border-blue-200 pb-2 mb-4">
-                Ringkasan Log
-            </h2>
-            <div class="flex items-center">
-                <span class="w-64 font-medium text-blue-700">Total Jam Kerja Keseluruhan:</span>
-                <span class="text-blue-600 font-bold text-xl">
+        <!-- Ringkasan Log -->
+        <div class="mb-6 bg-blue-50 p-4 rounded-lg">
+            <div class="flex items-center justify-between">
+                <span class="font-medium text-blue-800">Total Jam Kerja Keseluruhan:</span>
+                <span class="text-blue-600 font-bold text-lg">
                     {{ total_jam|floatformat:2 }} Jam
                 </span>
             </div>
         </div>
 
-        <!-- Daftar Log dalam Dropdown -->
+        <!-- Daftar Log -->
         <div class="space-y-4">
             {% for log in logs %}
             <div class="border rounded-lg overflow-hidden">
-                <!-- Dropdown Header -->
-                <button class="w-full text-left p-4 bg-gray-50 hover:bg-gray-100 flex justify-between items-center" 
-                        onclick="toggleCollapse('log-{{ forloop.counter }}')">
+                <!-- Header Log -->
+                <div class="p-4 bg-gray-50 flex justify-between items-center">
                     <div>
                         <span class="font-medium">
-                            Periode {{ log.tanggal_mulai|date:"d M" }} - {{ log.tanggal_selesai|date:"d M Y" }}
+                            {{ log.tanggal_mulai|date:"d M" }} - {{ log.tanggal_selesai|date:"d M Y" }}
                         </span>
-                        <span class="ml-4 text-sm 
-                            {% if log.status_persetujuan == 'disetujui' %}text-green-600
-                            {% elif log.status_persetujuan == 'ditolak' %}text-red-600
-                            {% else %}text-yellow-600{% endif %}">
+                        <span class="ml-2 text-sm {% if log.status_persetujuan == 'disetujui' %}text-green-600{% elif log.status_persetujuan == 'ditolak' %}text-red-600{% else %}text-yellow-600{% endif %}">
                             ({{ log.get_status_persetujuan_display }})
                         </span>
                     </div>
-                    <svg class="w-5 h-5 transform transition-transform" id="arrow-log-{{ forloop.counter }}" 
-                         xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                    </svg>
-                </button>
-    
-                <!-- Dropdown Content -->
+                    <button onclick="toggleCollapse('log-{{ forloop.counter }}')" class="text-gray-500 hover:text-gray-700">
+                        ▼
+                    </button>
+                </div>
+
+                <!-- Detail Log -->
                 <div id="log-{{ forloop.counter }}" class="hidden p-4 border-t">
                     <div class="mb-4">
                         <p class="font-medium">
@@ -106,44 +88,53 @@
                         <p class="text-red-600 mt-2">Alasan Penolakan: {{ log.alasan_penolakan }}</p>
                         {% endif %}
                     </div>
-    
+                
                     <h3 class="text-lg font-semibold mb-4">Aktivitas Harian</h3>
                     <div class="space-y-4">
-                        {% for aktivitas in log.aktivitas_harian.all %}
-                        <div class="border rounded p-4">
-                            <div class="grid grid-cols-3 gap-4">
-                                <div>
-                                    <p class="text-sm text-gray-600">Tanggal</p>
-                                    <p class="font-medium">{{ aktivitas.tanggal|date:"d M Y" }}</p>
+                        {% regroup log.aktivitas_harian.all by tanggal as grouped_activities %}
+                        {% for group in grouped_activities %}
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="font-medium text-gray-700 mb-3">
+                                {{ group.grouper|date:"d M Y" }}
+                            </h4>
+                            <div class="space-y-3">
+                                {% for aktivitas in group.list %}
+                                <div class="bg-white border rounded p-4">
+                                    <div class="grid grid-cols-4 gap-4 items-center">
+                                        <div>
+                                            <p class="text-sm text-gray-600">Jam Mulai</p>
+                                            <p class="font-medium">{{ aktivitas.jam_mulai|time:"H:i" }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-600">Jam Selesai</p>
+                                            <p class="font-medium">{{ aktivitas.jam_selesai|time:"H:i" }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-600">Durasi</p>
+                                            <p class="font-medium">{{ aktivitas.durasi|floatformat:2 }} Jam</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm text-gray-600">Deskripsi</p>
+                                            <p class="font-medium">{{ aktivitas.deskripsi }}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p class="text-sm text-gray-600">Waktu</p>
-                                    <p class="font-medium">{{ aktivitas.jam_mulai|time:"H:i" }} - {{ aktivitas.jam_selesai|time:"H:i" }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-sm text-gray-600">Durasi</p>
-                                    <p class="font-medium">{{ aktivitas.durasi|floatformat:2 }} Jam</p>
-                                </div>
-                                <div class="col-span-3">
-                                    <p class="text-sm text-gray-600">Deskripsi</p>
-                                    <p class="font-medium">{{ aktivitas.deskripsi }}</p>
-                                </div>
+                                {% endfor %}
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                 </div>
+                
             </div>
             {% endfor %}
         </div>
     </div>
-    
+
     <script>
         function toggleCollapse(id) {
             const element = document.getElementById(id);
-            const arrow = document.getElementById(`arrow-${id}`);
             element.classList.toggle('hidden');
-            arrow.classList.toggle('rotate-180');
         }
     </script>
 </body>
