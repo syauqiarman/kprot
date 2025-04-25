@@ -2,7 +2,7 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from database.models import *
 from LogMahasiswa.forms import LogMingguanForm, AktivitasHarianFormSet
-from datetime import date
+from datetime import date, timedelta
 from django.urls import reverse
 
 class LogFormTest(TestCase):
@@ -286,6 +286,66 @@ class LogFormTest(TestCase):
             self.pendaftaran_mbkm.role
         )
 
+    def test_delete_activity(self):
+        """Test menghapus aktivitas dari log yang sudah ada"""
+        log = LogMingguan.objects.create(
+            pendaftaran_mbkm=self.pendaftaran_mbkm,
+            tanggal_mulai='2024-07-02',
+            tanggal_selesai='2024-07-08'
+        )
+        
+        # Buat aktivitas yang akan dihapus
+        aktivitas = AktivitasHarian.objects.create(
+            log_mingguan=log,
+            tanggal='2024-07-02',
+            jam_mulai='08:00',
+            jam_selesai='17:00',
+            deskripsi='Aktivitas yang akan dihapus'
+        )
+        
+        data = {
+            'aktivitas_harian-TOTAL_FORMS': '1',
+            'aktivitas_harian-INITIAL_FORMS': '1',
+            'aktivitas_harian-0-id': aktivitas.id,
+            'aktivitas_harian-0-tanggal': '2024-07-02',
+            'aktivitas_harian-0-jam_mulai': '08:00',
+            'aktivitas_harian-0-jam_selesai': '17:00',
+            'aktivitas_harian-0-deskripsi': 'Aktivitas yang akan dihapus',
+            'aktivitas_harian-0-DELETE': 'on'
+        }
+        
+        formset = AktivitasHarianFormSet(data, instance=log)
+        self.assertTrue(formset.is_valid())
+        formset.save()
+        
+        self.assertEqual(AktivitasHarian.objects.count(), 0)
+
+    def test_max_activities_per_day(self):
+        """Test batasan maksimal aktivitas per hari"""
+        log = LogMingguan.objects.create(
+            pendaftaran_mbkm=self.pendaftaran_mbkm,
+            tanggal_mulai='2024-07-02',
+            tanggal_selesai='2024-07-08'
+        )
+        
+        # Buat 10 aktivitas di hari yang sama
+        data = {
+            'aktivitas_harian-TOTAL_FORMS': '10',
+            'aktivitas_harian-INITIAL_FORMS': '0',
+        }
+        
+        for i in range(10):
+            data.update({
+                f'aktivitas_harian-{i}-tanggal': '2024-07-02',
+                f'aktivitas_harian-{i}-jam_mulai': f'{8+i:02d}:00',
+                f'aktivitas_harian-{i}-jam_selesai': f'{9+i:02d}:00',
+                f'aktivitas_harian-{i}-deskripsi': f'Aktivitas {i+1}'
+            })
+        
+        formset = AktivitasHarianFormSet(data, instance=log)
+        self.assertFalse(formset.is_valid())
+        self.assertIn('Maksimal 5 aktivitas per hari', str(formset.non_form_errors()))
+
 class LogViewsTest(TestCase):
     def setUp(self):
         self.user1 = User.objects.create_user(username="testuser1", password="password")
@@ -523,3 +583,18 @@ class LogViewsTest(TestCase):
         # Perbaiki assertion dengan parameter fetch_redirect_response=False
         self.assertRedirects(response_create, '/', fetch_redirect_response=False)
         self.assertRedirects(response_detail, '/', fetch_redirect_response=False)
+
+    def test_log_with_future_dates(self):
+        """Test membuat log dengan tanggal di masa depan"""
+        future_date = (date.today() + timedelta(days=30)).strftime('%Y-%m-%d')
+        data = self.valid_data.copy()
+        data.update({
+            'tanggal_mulai': future_date,
+            'tanggal_selesai': future_date
+        })
+        
+        self.client.force_login(self.user1)
+        response = self.client.post(self.create_log_url, data)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Tidak dapat membuat log untuk tanggal di masa depan")
