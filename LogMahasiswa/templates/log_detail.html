@@ -22,6 +22,16 @@
             {% endif %}
         </div>
 
+        {% if messages %}
+        <div class="mb-4 space-y-2">
+            {% for message in messages %}
+                <div class="p-3 rounded-lg {% if message.tags == 'error' %}bg-red-50 text-red-800{% else %}bg-blue-50 text-blue-800{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <!-- Informasi Pribadi -->
         <div class="mb-6 bg-gray-50 p-4 rounded-lg">
             <div class="grid grid-cols-2 gap-4 text-sm">

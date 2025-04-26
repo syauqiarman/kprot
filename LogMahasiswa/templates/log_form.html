@@ -81,14 +81,11 @@
                     <!-- Konten di-generate oleh JavaScript -->
                     {% if formset.errors %}
                         <div class="text-red-600 mb-4">
-                            {% for error in formset.non_form_errors %}
-                                <p>{{ error }}</p>
-                            {% endfor %}
                             {% for form in formset %}
                                 {% for field_name, errors in form.errors.items %}
                                     {% for error in errors %}
                                         <div class="text-red-600 text-sm mt-1 p-2 bg-red-50 rounded mb-2">
-                                            <span class="font-medium">{{ field_name|title }}:</span> {{ error }}
+                                            <span class="font-medium">{{ error }}</span>
                                         </div>
                                     {% endfor %}
                                 {% endfor %}
@@ -137,6 +134,18 @@
                     endDateInput.min = startDate.toISOString().split('T')[0];
                 }
             }
+
+            // Event listeners untuk tanggal mulai/selesai (tetap sama)
+            startDateInput.addEventListener('change', function() {
+                updateDateConstraints()
+                enforceMax7Days();
+                updateForms();
+            });
+            endDateInput.addEventListener('change', function() {
+                updateDateConstraints()
+                enforceMax7Days();
+                updateForms();
+            });
 
             function updateForms() {
                 const startDate = new Date(startDateInput.value);
@@ -219,15 +228,8 @@
                 managementForm.value = formCount;
             };
             
-            // Event listeners untuk tanggal mulai/selesai (tetap sama)
-            startDateInput.addEventListener('change', function() {
-                enforceMax7Days();
-                updateForms();
-            });
-            endDateInput.addEventListener('change', function() {
-                enforceMax7Days();
-                updateForms();
-            });
+            startDateInput.addEventListener('change', updateForms);
+            endDateInput.addEventListener('change', updateForms);
         });
         </script>
 </body>
