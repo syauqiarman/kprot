@@ -42,6 +42,18 @@ def _handle_post_request(request, program):
     form = LogMingguanForm(request.POST, program=program)
     dates = _process_dates(request.POST)
     
+    # Hitung jumlah form yang aktif (tidak dihapus)
+    total_forms = int(request.POST.get('aktivitas_harian-TOTAL_FORMS', 0))
+    active_forms = 0
+    for i in range(total_forms):
+        if not request.POST.get(f'aktivitas_harian-{i}-DELETE'):
+            active_forms += 1
+    
+    # Validasi minimal satu aktivitas
+    if active_forms == 0:
+        messages.error(request, "Minimal harus ada satu aktivitas harian")
+        return _render_form(request, program)
+    
     if form.is_valid():
         return _handle_valid_form(request, form, program)
     

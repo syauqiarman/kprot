@@ -124,6 +124,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrftoken = getCookie('csrftoken');
     let formCount = 0;
 
+    // Fungsi untuk update jumlah form
+    function updateFormCount() {
+        const visibleForms = document.querySelectorAll('.activity-form:not([style*="display: none"])').length;
+        document.getElementById('id_aktivitas_harian-TOTAL_FORMS').value = visibleForms;
+    }
+
+    // Event delegation untuk tombol hapus
+    document.addEventListener('click', function(e) {
+        if (e.target.matches('.delete-activity')) {
+            const activityForm = e.target.closest('.activity-form');
+            const deleteCheckbox = activityForm.querySelector('input[name$="-DELETE"]');
+            
+            if (confirm('Apakah Anda yakin ingin menghapus aktivitas ini?')) {
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    activityForm.style.display = 'none';
+                } else {
+                    activityForm.remove();
+                }
+                
+                updateFormCount();
+            }
+        }
+    });
+
     function updateDateConstraints() {
         if (startDateInput.value) {
             const startDate = new Date(startDateInput.value);
@@ -193,27 +218,38 @@ window.addActivity = function(dateString, initialData = {}) {
     const container = document.querySelector(`.activity-container-${dateString}`);
     const newIndex = formCount;
 
+    // Update template form aktivitas dalam fungsi window.addActivity
     const newFormHTML = `
-        <div class="activity-form border-b pb-4 mb-4">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                    <input type="hidden" name="aktivitas_harian-${newIndex}-tanggal" value="${dateString}">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Jam Mulai</label>
-                    <input type="time" name="aktivitas_harian-${newIndex}-jam_mulai" value="${initialData.jam_mulai || ''}" class="border rounded p-2 w-full" required>
-                    <div class="error-message text-red-600 text-sm mt-1"></div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Jam Selesai</label>
-                    <input type="time" name="aktivitas_harian-${newIndex}-jam_selesai" value="${initialData.jam_selesai || ''}" class="border rounded p-2 w-full" required>
-                    <div class="error-message text-red-600 text-sm mt-1"></div>
-                </div>
-                <div class="col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Deskripsi</label>
-                    <textarea name="aktivitas_harian-${newIndex}-deskripsi" class="border rounded p-2 w-full" rows="2" required>${initialData.deskripsi || ''}</textarea>
-                    <div class="error-message text-red-600 text-sm mt-1"></div>
+    <div class="activity-form border-b pb-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+            <div class="md:col-span-2">
+                <input type="hidden" name="aktivitas_harian-${newIndex}-tanggal" value="${dateString}">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Jam Mulai</label>
+                <input type="time" name="aktivitas_harian-${newIndex}-jam_mulai" value="${initialData.jam_mulai || ''}" class="border rounded p-2 w-full" required>
+                <div class="error-message text-red-600 text-sm mt-1"></div>
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Jam Selesai</label>
+                <input type="time" name="aktivitas_harian-${newIndex}-jam_selesai" value="${initialData.jam_selesai || ''}" class="border rounded p-2 w-full" required>
+                <div class="error-message text-red-600 text-sm mt-1"></div>
+            </div>
+            <div class="md:col-span-7">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Deskripsi</label>
+                <textarea name="aktivitas_harian-${newIndex}-deskripsi" class="border rounded p-2 w-full" rows="2" required>${initialData.deskripsi || ''}</textarea>
+                <div class="error-message text-red-600 text-sm mt-1"></div>
+            </div>
+            <div class="md:col-span-1 flex items-start pt-8">
+                <button type="button" class="delete-activity bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </button>
+                <div class="hidden">
+                    <input type="checkbox" name="aktivitas_harian-${newIndex}-DELETE">
                 </div>
             </div>
-        </div>`;
+        </div>
+    </div>`;
     
     container.insertAdjacentHTML('beforeend', newFormHTML);
     formCount++;
