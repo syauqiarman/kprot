@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from django.http import JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
 from django.urls import reverse
 from database.models import AktivitasHarian, LogMingguan, PendaftaranKP, PendaftaranMBKM
@@ -198,3 +198,24 @@ def log_detail(request):
         'logs': logs,
         'total_jam': total_jam
     })
+
+def delete_log(request, log_id):
+    """Menghapus log mingguan."""
+    if request.method == 'POST':
+        log = get_object_or_404(LogMingguan, id=log_id)
+        
+        # Pastikan log milik user yang sedang login
+        if (log.pendaftaran_kp and log.pendaftaran_kp.mahasiswa.user != request.user) or \
+           (log.pendaftaran_mbkm and log.pendaftaran_mbkm.mahasiswa.user != request.user):
+            messages.error(request, "Anda tidak memiliki izin untuk menghapus log ini.")
+            return redirect('LogMahasiswa:log_detail')
+        
+        # Cek status persetujuan
+        if log.status_persetujuan == 'disetujui':
+            messages.error(request, "Log yang sudah disetujui tidak dapat dihapus.")
+            return redirect('LogMahasiswa:log_detail')
+        
+        log.delete()
+        messages.success(request, "Log berhasil dihapus.")
+        
+    return redirect('LogMahasiswa:log_detail')

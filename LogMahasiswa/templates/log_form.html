@@ -132,8 +132,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Event delegation untuk tombol hapus
     document.addEventListener('click', function(e) {
-        if (e.target.matches('.delete-activity')) {
+        if (e.target.matches('.delete-activity') || e.target.closest('.delete-activity')) {
             const activityForm = e.target.closest('.activity-form');
+            const container = activityForm.closest('[class^="activity-container-"]');
             const deleteCheckbox = activityForm.querySelector('input[name$="-DELETE"]');
             
             if (confirm('Apakah Anda yakin ingin menghapus aktivitas ini?')) {
@@ -145,6 +146,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 updateFormCount();
+                // Update tombol hapus setelah menghapus aktivitas
+                updateDeleteButtons(container);
             }
         }
     });
@@ -191,7 +194,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Tambahkan fungsi untuk mengecek overlap aktivitas di hari yang sama
 function checkTimeOverlap(container, newStartTime, newEndTime, currentForm) {
-    const activities = container.querySelectorAll('.activity-form');
+    // Hanya cek form yang visible (tidak dihapus)
+    const activities = container.querySelectorAll('.activity-form:not([style*="display: none"])');
+    
     for (const activity of activities) {
         // Skip jika ini adalah form yang sedang divalidasi
         if (activity === currentForm) {
@@ -213,12 +218,23 @@ function checkTimeOverlap(container, newStartTime, newEndTime, currentForm) {
     return false; // Tidak ada overlap
 }
 
-// Update fungsi addActivity
+    // Update fungsi addActivity
 window.addActivity = function(dateString, initialData = {}) {
     const container = document.querySelector(`.activity-container-${dateString}`);
     const newIndex = formCount;
 
-    // Update template form aktivitas dalam fungsi window.addActivity
+    // Cek jumlah aktivitas yang ada di hari yang sama
+    const existingActivities = container.querySelectorAll('.activity-form').length;
+
+    // Template untuk tombol hapus yang akan ditampilkan kondisional
+    const deleteButtonHTML = existingActivities > 0 ? `
+        <button type="button" class="delete-activity bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+        </button>
+    ` : '';
+
     const newFormHTML = `
     <div class="activity-form border-b pb-4 mb-4">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
@@ -239,11 +255,7 @@ window.addActivity = function(dateString, initialData = {}) {
                 <div class="error-message text-red-600 text-sm mt-1"></div>
             </div>
             <div class="md:col-span-1 flex items-start pt-8">
-                <button type="button" class="delete-activity bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                </button>
+                ${deleteButtonHTML}
                 <div class="hidden">
                     <input type="checkbox" name="aktivitas_harian-${newIndex}-DELETE">
                 </div>
@@ -254,6 +266,9 @@ window.addActivity = function(dateString, initialData = {}) {
     container.insertAdjacentHTML('beforeend', newFormHTML);
     formCount++;
     managementForm.value = formCount;
+
+    // Setelah menambahkan form baru, update tombol hapus di semua form
+    updateDeleteButtons(container);
 
     const newForm = container.lastElementChild;
     const jamMulaiInput = newForm.querySelector(`[name="aktivitas_harian-${newIndex}-jam_mulai"]`);
@@ -290,6 +305,19 @@ window.addActivity = function(dateString, initialData = {}) {
     jamSelesaiInput.addEventListener('change', validateTime);
 };
 
+// Tambahkan fungsi untuk update tombol hapus
+function updateDeleteButtons(container) {
+    const forms = container.querySelectorAll('.activity-form');
+    const shouldShowDeleteButton = forms.length > 1;
+    
+    forms.forEach(form => {
+        const deleteButton = form.querySelector('.delete-activity');
+        if (deleteButton) {
+            deleteButton.style.display = shouldShowDeleteButton ? 'flex' : 'none';
+        }
+    });
+}
+
     startDateInput.addEventListener('change', () => {
         updateDateConstraints();
         updateForms();
@@ -308,14 +336,18 @@ window.addActivity = function(dateString, initialData = {}) {
         // Validasi semua aktivitas sebelum submit
         let hasError = false;
         document.querySelectorAll('[class^="activity-container-"]').forEach(container => {
-            const date = container.closest('.date-group').dataset.date;
-            const activities = container.querySelectorAll('.activity-form');
+            // Hanya validasi form yang visible
+            const activities = container.querySelectorAll('.activity-form:not([style*="display: none"])');
             
             activities.forEach(form => {
                 const startInput = form.querySelector('input[type="time"]:not([name$="-jam_selesai"])');
                 const endInput = form.querySelector('input[type="time"][name$="-jam_selesai"]');
                 
                 if (startInput && endInput && startInput.value && endInput.value) {
+                    // Reset error state
+                    startInput.classList.remove('border-red-500');
+                    startInput.nextElementSibling.textContent = "";
+                    
                     if (startInput.value >= endInput.value) {
                         hasError = true;
                         startInput.classList.add('border-red-500');
