@@ -9,95 +9,137 @@ from LogMahasiswa.forms import AktivitasHarianForm, LogMingguanForm, AktivitasHa
 from django.db.models import Prefetch
 
 def create_log(request):
+    """View utama untuk membuat log aktivitas."""
+    program = _get_active_program(request)
+    if not program:
+        messages.warning(request, "Anda belum memiliki program yang aktif")
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    if request.method == 'POST':
+        return _handle_post_request(request, program)
+    return _render_form(request, program)
+
+def _get_active_program(request):
+    """Mengambil program aktif (KP atau MBKM) untuk mahasiswa."""
     try:
-        program = PendaftaranKP.objects.get(
+        return PendaftaranKP.objects.get(
             mahasiswa__user=request.user,
             status_pendaftaran='Terdaftar',
             semester__aktif=True
         )
     except PendaftaranKP.DoesNotExist:
         try:
-            program = PendaftaranMBKM.objects.get(
+            return PendaftaranMBKM.objects.get(
                 mahasiswa__user=request.user,
                 status_pendaftaran='Terdaftar',
                 semester__aktif=True
             )
         except PendaftaranMBKM.DoesNotExist:
-            messages.warning(request, "Anda belum memiliki program yang aktif")
-            return redirect(request.META.get('HTTP_REFERER', '/'))
+            return None
 
-    if request.method == 'POST':
-        form = LogMingguanForm(request.POST, program=program)
-        tanggal_mulai_str = request.POST.get('tanggal_mulai')
-        tanggal_selesai_str = request.POST.get('tanggal_selesai')
-        dates = []
-        num_days = 7  # Default 7 hari jika tidak ada tanggal
+def _handle_post_request(request, program):
+    """Menangani request POST untuk pembuatan log."""
+    form = LogMingguanForm(request.POST, program=program)
+    dates = _process_dates(request.POST)
+    
+    if form.is_valid():
+        return _handle_valid_form(request, form, program)
+    
+    return _handle_invalid_form(request, form, program, dates)
 
-        if tanggal_mulai_str and tanggal_selesai_str:
-            try:
-                start_date = datetime.strptime(tanggal_mulai_str, "%Y-%m-%d").date()
-                end_date = datetime.strptime(tanggal_selesai_str, "%Y-%m-%d").date()
-                num_days = (end_date - start_date).days + 1
-                dates = [start_date + timedelta(days=i) for i in range(num_days)]
-            except:
-                pass  # Tetap gunakan default jika parsing gagal
-        
-        if form.is_valid():
-            # Simpan log terlebih dahulu
-            log = form.save(commit=False)
-            if isinstance(program, PendaftaranKP):
-                log.pendaftaran_kp = program
-            else:
-                log.pendaftaran_mbkm = program
-            log.save()  # Simpan untuk mendapatkan ID
-            
-            # Sekarang proses formset dengan instance yang sudah ada
-            formset = AktivitasHarianFormSet(request.POST, instance=log)
-            if formset.is_valid():
-                formset.save()
+def _process_dates(post_data):
+    """Memproses dan memvalidasi tanggal dari POST data."""
+    tanggal_mulai_str = post_data.get('tanggal_mulai')
+    tanggal_selesai_str = post_data.get('tanggal_selesai')
+    dates = []
 
-                log.total_jam = log.calculate_total_jam()
-                log.save()
-                
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse({
-                        'success': True,
-                        'redirect_url': reverse('LogMahasiswa:log_detail')
-                    })
-                else:
-                    messages.success(request, "Log mingguan berhasil disimpan!")
-                    return redirect('LogMahasiswa:log_detail')
-            else:
-                # Hapus log jika formset tidak valid
-                log.delete()
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse({
-                        'success': False,
-                        'formset_errors': [f.errors for f in formset]
-                    })
-                else:
-                    messages.error(request, "Terjadi kesalahan pada aktivitas harian")
-        else:
-            for error in form.non_field_errors():
-                messages.error(request, error)
-            formset = AktivitasHarianFormSet(request.POST)
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': False,
-                    'form_errors': form.errors,
-                    'formset_errors': [f.errors for f in formset],
-                    'non_field_errors': form.non_field_errors()
-                })
+    if tanggal_mulai_str and tanggal_selesai_str:
+        try:
+            start_date = datetime.strptime(tanggal_mulai_str, "%Y-%m-%d").date()
+            end_date = datetime.strptime(tanggal_selesai_str, "%Y-%m-%d").date()
+            dates = [start_date + timedelta(days=i) 
+                    for i in range((end_date - start_date).days + 1)]
+        except ValueError:
+            pass
+
+    return dates
+
+def _handle_valid_form(request, form, program):
+    """Menangani form yang valid dan menyimpan log."""
+    log = _save_log(form, program)
+    formset = AktivitasHarianFormSet(request.POST, instance=log)
+    
+    if formset.is_valid():
+        return _save_valid_formset(request, formset, log)
+    
+    return _handle_invalid_formset(request, formset, log)
+
+def _save_log(form, program):
+    """Menyimpan log mingguan ke database."""
+    log = form.save(commit=False)
+    if isinstance(program, PendaftaranKP):
+        log.pendaftaran_kp = program
     else:
-        form = LogMingguanForm(program=program)
-        formset = AktivitasHarianFormSet()
+        log.pendaftaran_mbkm = program
+    log.save()
+    return log
 
-    return render(request, 'log_form.html', {
-        'form': form,
-        'formset': formset,
+def _save_valid_formset(request, formset, log):
+    """Menyimpan formset yang valid dan mengupdate total jam."""
+    formset.save()
+    log.total_jam = log.calculate_total_jam()
+    log.save()
+    
+    if _is_ajax_request(request):
+        return JsonResponse({
+            'success': True,
+            'redirect_url': reverse('LogMahasiswa:log_detail')
+        })
+    
+    messages.success(request, "Log mingguan berhasil disimpan!")
+    return redirect('LogMahasiswa:log_detail')
+
+def _handle_invalid_formset(request, formset, log):
+    """Menangani formset yang tidak valid."""
+    log.delete()
+    if _is_ajax_request(request):
+        return JsonResponse({
+            'success': False,
+            'formset_errors': [f.errors for f in formset]
+        })
+    
+    messages.error(request, "Terjadi kesalahan pada aktivitas harian")
+    return _render_form(request, log.program)
+
+def _handle_invalid_form(request, form, program, dates):
+    """Menangani form yang tidak valid."""
+    for error in form.non_field_errors():
+        messages.error(request, error)
+    
+    formset = AktivitasHarianFormSet(request.POST)
+    if _is_ajax_request(request):
+        return JsonResponse({
+            'success': False,
+            'form_errors': form.errors,
+            'formset_errors': [f.errors for f in formset],
+            'non_field_errors': form.non_field_errors()
+        })
+    
+    return _render_form(request, program, form, formset, dates)
+
+def _render_form(request, program, form=None, formset=None, dates=None):
+    """Merender form log mingguan."""
+    context = {
+        'form': form or LogMingguanForm(program=program),
+        'formset': formset or AktivitasHarianFormSet(),
         'program': program,
-        'zipped_data': zip(formset, dates if request.method == 'POST' else [])
-    })
+        'zipped_data': zip(formset or [], dates or [])
+    }
+    return render(request, 'log_form.html', context)
+
+def _is_ajax_request(request):
+    """Mengecek apakah request adalah AJAX request."""
+    return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
 def log_detail(request):
     try:
@@ -122,14 +164,14 @@ def log_detail(request):
         logs = LogMingguan.objects.filter(pendaftaran_kp=program).order_by('-tanggal_mulai').prefetch_related(
             Prefetch(
                 'aktivitas_harian',
-                queryset=AktivitasHarian.objects.order_by('tanggal')
+                queryset=AktivitasHarian.objects.order_by('tanggal', 'jam_mulai')
             )
         )
     else:
         logs = LogMingguan.objects.filter(pendaftaran_mbkm=program).order_by('-tanggal_mulai').prefetch_related(
             Prefetch(
                 'aktivitas_harian',
-                queryset=AktivitasHarian.objects.order_by('tanggal')
+                queryset=AktivitasHarian.objects.order_by('tanggal', 'jam_mulai')
             )
         )
     
