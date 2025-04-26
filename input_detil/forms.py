@@ -1,4 +1,7 @@
 from django import forms
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils.crypto import get_random_string
 from .models import PendaftaranKP, Penyelia, Semester, User
 
 class InputDetilKPForm(forms.ModelForm):
@@ -94,7 +97,11 @@ class InputDetilKPForm(forms.ModelForm):
                     raise forms.ValidationError("User sudah memiliki role lain dan tidak bisa menjadi Penyelia.")
                 else:
                     # Buat user baru
-                    user2 = User.objects.create(email=penyelia_email, username=penyelia_email)
+                    username = penyelia_email.split('@')[0]
+                    user2 = User.objects.create(email=penyelia_email, username=username)
+                    temporary_password = get_random_string(length=10)
+                    user2.set_password(temporary_password)
+                    user2.save()
                     # Buat Penyelia baru
                     penyelia = Penyelia.objects.create(
                         user=user2,
@@ -102,6 +109,24 @@ class InputDetilKPForm(forms.ModelForm):
                         perusahaan=penyelia_perusahaan,
                         email=penyelia_email
                     )
+
+                    print("tes masuk")
+                    send_mail(
+                        subject='Test Email',
+                        message=(
+                            f"Halo {penyelia_nama},\n\n"
+                            f"Akun Anda sebagai penyelia telah berhasil didaftarkan.\n"
+                            f"Silakan login dengan kredensial berikut:\n\n"
+                            f"Username: {penyelia_email}\n"
+                            f"Password sementara: {temporary_password}\n\n"
+                            f"Harap segera login dan ganti password Anda.\n\n"
+                            f"Terima kasih."
+                        ),
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[penyelia_email],
+                        fail_silently=False,
+                    )
+                    print("tes keluar")
 
             # Set penyelia ke instance form
             instance.penyelia = penyelia
