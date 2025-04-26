@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.urls import reverse
 from database.models import AktivitasHarian, LogMingguan, PendaftaranKP, PendaftaranMBKM
 from django.db.models import Sum
 from LogMahasiswa.forms import AktivitasHarianForm, LogMingguanForm, AktivitasHarianFormSet
@@ -57,16 +59,35 @@ def create_log(request):
                 log.total_jam = log.calculate_total_jam()
                 log.save()
                 
-                messages.success(request, "Log mingguan berhasil disimpan!")
-                return redirect('LogMahasiswa:log_detail')
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': True,
+                        'redirect_url': reverse('LogMahasiswa:log_detail')
+                    })
+                else:
+                    messages.success(request, "Log mingguan berhasil disimpan!")
+                    return redirect('LogMahasiswa:log_detail')
             else:
                 # Hapus log jika formset tidak valid
                 log.delete()
-                messages.error(request, "Terjadi kesalahan pada aktivitas harian")
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({
+                        'success': False,
+                        'formset_errors': [f.errors for f in formset]
+                    })
+                else:
+                    messages.error(request, "Terjadi kesalahan pada aktivitas harian")
         else:
             for error in form.non_field_errors():
                 messages.error(request, error)
             formset = AktivitasHarianFormSet(request.POST)
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'form_errors': form.errors,
+                    'formset_errors': [f.errors for f in formset],
+                    'non_field_errors': form.non_field_errors()
+                })
     else:
         form = LogMingguanForm(program=program)
         formset = AktivitasHarianFormSet()
