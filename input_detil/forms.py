@@ -1,8 +1,6 @@
 from django import forms
-from django.core.mail import send_mail
-from django.conf import settings
-from django.utils.crypto import get_random_string
-from .models import PendaftaranKP, Penyelia, Semester, User
+from .models import PendaftaranKP
+from input_detil.services import pendaftaran_akun_penyelia
 
 class InputDetilKPForm(forms.ModelForm):
     class Meta:
@@ -67,113 +65,25 @@ class InputDetilKPForm(forms.ModelForm):
         return cleaned_data
 
     def save(self, commit=True):
-        """Simpan form dan perbarui status_pendaftaran secara otomatis"""
         instance = super().save(commit=False)
 
-        # Cek apakah semua field sudah terisi, lalu ubah status_pendaftaran
+        # Cek kelengkapan untuk ubah status
         required_fields = ["role", "total_jam_kerja", "penyelia_nama", "penyelia_perusahaan", "penyelia_email", "tanggal_mulai", "tanggal_selesai"]
         is_complete = all(self.cleaned_data.get(field) for field in required_fields)
 
         instance.status_pendaftaran = "Terdaftar" if is_complete else "Menunggu Detil"
 
-        # Update atau buat penyelia
+        # Create atau update penyelia + kirim email
         penyelia_nama = self.cleaned_data.get("penyelia_nama")
         penyelia_perusahaan = self.cleaned_data.get("penyelia_perusahaan")
         penyelia_email = self.cleaned_data.get("penyelia_email")
 
         if penyelia_nama and penyelia_perusahaan and penyelia_email:
-            existing_penyelia = Penyelia.objects.filter(email=penyelia_email).first()
-            existing_user = User.objects.filter(email=penyelia_email).first()
-
-            if existing_penyelia and existing_user:
-                print("udh ada penyelianya")
-                # Update data penyelia jika perlu
-                existing_penyelia.nama = penyelia_nama
-                existing_penyelia.perusahaan = penyelia_perusahaan
-                existing_penyelia.save()
-                penyelia = existing_penyelia
-
-                # Update data usernya juga
-                existing_user.nama = penyelia_nama
-            # elif existing_user:
-            #     print("udh ada usernya")
-            #     # Update data jika perlu
-            #     existing_user.nama = penyelia_nama
-            #     existing_penyelia.perusahaan = penyelia_perusahaan
-            #     existing_penyelia.save()
-            #     penyelia = existing_penyelia
-            else:
-                username = penyelia_email.split('@')[0]
-                user2 = User.objects.create(email=penyelia_email, username=username)
-                temporary_password = get_random_string(length=10)
-                user2.set_password(temporary_password)
-                user2.save()
-
-                penyelia = Penyelia.objects.create(
-                    user=user2,
-                    nama=penyelia_nama,
-                    perusahaan=penyelia_perusahaan,
-                    email=penyelia_email
-                )
-
-                print("tes masuk")
-                send_mail(
-                    subject='Test Email',
-                    message=(
-                        f"Halo {penyelia_nama},\n\n"
-                        f"Akun Anda sebagai penyelia telah berhasil didaftarkan.\n"
-                        f"Silakan login dengan kredensial berikut:\n\n"
-                        f"Username: {penyelia_email}\n"
-                        f"Password sementara: {temporary_password}\n\n"                           
-                        f"Harap segera login dan ganti password Anda.\n\n"
-                        f"Terima kasih."
-                    ),
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[penyelia_email],
-                    fail_silently=False,
-                )
-                print("tes keluar")
-
-
-#                # Cek apakah user sudah ada
-#                user2 = User.objects.filter(email=penyelia_email).first()
-#                if user2:
-#                    # Cek apakah user sudah punya role lain (tapi belum jadi Penyelia)
-#                    raise forms.ValidationError("User sudah memiliki role lain dan tidak bisa menjadi Penyelia.")
-#                else:
-#                    # Buat user baru
-#                    username = penyelia_email.split('@')[0]
-#                    user2 = User.objects.create(email=penyelia_email, username=username)
-#                    # temporary_password = get_random_string(length=10)
-#                    # user2.set_password(temporary_password)
-#                    # user2.save()
-#                    # Buat Penyelia baru
-#                    penyelia = Penyelia.objects.create(
-#                        user=user2,
-#                        nama=penyelia_nama,
-#                        perusahaan=penyelia_perusahaan,
-#                        email=penyelia_email
-#                    )
-#
-#                    # print("tes masuk")
-#                    # send_mail(
-#                    #     subject='Test Email',
-#                    #     message=(
-#                    #         f"Halo {penyelia_nama},\n\n"
-#                    #         f"Akun Anda sebagai penyelia telah berhasil didaftarkan.\n"
-#                    #         f"Silakan login dengan kredensial berikut:\n\n"
-#                    #         f"Username: {penyelia_email}\n"
-#                    #         f"Password sementara: {temporary_password}\n\n"
-#                    #         f"Harap segera login dan ganti password Anda.\n\n"
-#                    #         f"Terima kasih."
-#                    #     ),
-#                    #     from_email=settings.DEFAULT_FROM_EMAIL,
-#                    #     recipient_list=[penyelia_email],
-#                    #     fail_silently=False,
-#                    # )
-#                    # print("tes keluar")
-#
-#            # Set penyelia ke instance form
+            penyelia = pendaftaran_akun_penyelia(
+                nama=penyelia_nama,
+                perusahaan=penyelia_perusahaan,
+                email=penyelia_email,
+            )
             instance.penyelia = penyelia
 
         if commit:
