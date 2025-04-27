@@ -8,6 +8,7 @@
 </head>
 <body class="bg-gray-100 p-5">
     <div class="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
+
         <!-- Back Button -->
         <div class="mb-6">
             <a href="javascript:history.back()" 
@@ -18,7 +19,7 @@
                 Kembali
             </a>
         </div>
-
+    
         {% if messages %}
         <div class="mb-4 space-y-2">
             {% for message in messages %}
@@ -36,27 +37,27 @@
             <!-- Info Mahasiswa -->
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama</label>
-                    <div class="p-2 bg-gray-100 rounded-md">{{ form.nama.value }}</div>
+                    <label for="id_nama" class="block text-sm font-medium text-gray-700 mb-2">Nama</label>
+                    <div id="id_nama" class="p-2 bg-gray-100 rounded-md">{{ form.nama.value }}</div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">NPM</label>
-                    <div class="p-2 bg-gray-100 rounded-md">{{ form.npm.value }}</div>
+                    <label for="id_npm" class="block text-sm font-medium text-gray-700 mb-2">NPM</label>
+                    <div id="id_npm" class="p-2 bg-gray-100 rounded-md">{{ form.npm.value }}</div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tempat Magang</label>
-                    <div class="p-2 bg-gray-100 rounded-md">{{ form.tempat_magang.value }}</div>
+                    <label for="id_tempat_magang" class="block text-sm font-medium text-gray-700 mb-2">Tempat Magang</label>
+                    <div id="id_tempat_magang" class="p-2 bg-gray-100 rounded-md">{{ form.tempat_magang.value }}</div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Role Magang</label>
-                    <div class="p-2 bg-gray-100 rounded-md">{{ form.role_magang.value }}</div>
+                    <label for="id_role_magang" class="block text-sm font-medium text-gray-700 mb-2">Role Magang</label>
+                    <div id="id_role_magang" class="p-2 bg-gray-100 rounded-md">{{ form.role_magang.value }}</div>
                 </div>
             </div>
     
             <!-- Tanggal Log -->
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="id_tanggal_mulai" class="block text-sm font-medium text-gray-700 mb-2">
                         Tanggal Mulai
                     </label>
                     {{ form.tanggal_mulai }}
@@ -69,7 +70,7 @@
                     {% endif %}
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="id_tanggal_selesai" class="block text-sm font-medium text-gray-700 mb-2">
                         Tanggal Selesai
                     </label>
                     {{ form.tanggal_selesai }}
@@ -111,58 +112,72 @@
             </button>
         </form>
     </div>
-
+    
     <script>
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (const cookie of cookies) {
+                const trimmedCookie = cookie.trim();
+                if (trimmedCookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(trimmedCookie.substring(name.length + 1));
+                    break;
+                }
             }
         }
+        return cookieValue;
     }
-    return cookieValue;
-}
-
-document.addEventListener('DOMContentLoaded', function() {
+    
+    document.addEventListener('DOMContentLoaded', function() {
     const startDateInput = document.querySelector('input[name="tanggal_mulai"]');
     const endDateInput = document.querySelector('input[name="tanggal_selesai"]');
     const managementForm = document.getElementById('id_aktivitas_harian-TOTAL_FORMS');
     const csrftoken = getCookie('csrftoken');
     let formCount = 0;
-
-    // Fungsi untuk update jumlah form
+    
+    // Fungsi untuk update jumlah form dan mengurutkan ulang indeks
     function updateFormCount() {
-        const visibleForms = document.querySelectorAll('.activity-form:not([style*="display: none"])').length;
-        document.getElementById('id_aktivitas_harian-TOTAL_FORMS').value = visibleForms;
+        const allContainers = document.querySelectorAll('[class^="activity-container-"]');
+        let newIndex = 0;
+        
+        allContainers.forEach(container => {
+            const visibleForms = container.querySelectorAll('.activity-form:not([style*="display: none"])');
+            visibleForms.forEach(form => {
+                // Update semua input dalam form dengan indeks baru
+                const inputs = form.querySelectorAll('input, textarea');
+                inputs.forEach(input => {
+                    const oldName = input.name;
+                    const newName = oldName.replace(/\d+/, newIndex);
+                    input.name = newName;
+                    input.id = input.id.replace(/\d+/, newIndex);
+                });
+                newIndex++;
+            });
+        });
+        
+        document.getElementById('id_aktivitas_harian-TOTAL_FORMS').value = newIndex;
+        return newIndex;
     }
-
+    
     // Event delegation untuk tombol hapus
     document.addEventListener('click', function(e) {
         if (e.target.matches('.delete-activity') || e.target.closest('.delete-activity')) {
             const activityForm = e.target.closest('.activity-form');
             const container = activityForm.closest('[class^="activity-container-"]');
-            const deleteCheckbox = activityForm.querySelector('input[name$="-DELETE"]');
             
             if (confirm('Apakah Anda yakin ingin menghapus aktivitas ini?')) {
-                if (deleteCheckbox) {
-                    deleteCheckbox.checked = true;
-                    activityForm.style.display = 'none';
-                } else {
-                    activityForm.remove();
-                }
+                // Hapus form dari DOM
+                activityForm.remove();
                 
+                // Update form count dan reindex
                 updateFormCount();
-                // Update tombol hapus setelah menghapus aktivitas
+                // Update tombol hapus
                 updateDeleteButtons(container);
             }
         }
     });
-
+    
     function updateDateConstraints() {
         if (startDateInput.value) {
             const startDate = new Date(startDateInput.value);
@@ -172,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
             endDateInput.min = startDate.toISOString().split('T')[0];
         }
     }
-
+    
     function updateForms() {
         const startDate = new Date(startDateInput.value);
         const endDate = new Date(endDateInput.value);
@@ -204,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Tambahkan fungsi untuk mengecek overlap aktivitas di hari yang sama
-function checkTimeOverlap(container, newStartTime, newEndTime, currentForm) {
+    function checkTimeOverlap(container, newStartTime, newEndTime, currentForm) {
     // Hanya cek form yang visible (tidak dihapus)
     const activities = container.querySelectorAll('.activity-form:not([style*="display: none"])');
     
@@ -213,7 +228,7 @@ function checkTimeOverlap(container, newStartTime, newEndTime, currentForm) {
         if (activity === currentForm) {
             continue;
         }
-
+    
         const startInput = activity.querySelector('input[type="time"]:not([name$="-jam_selesai"])');
         const endInput = activity.querySelector('input[type="time"][name$="-jam_selesai"]');
         
@@ -227,16 +242,16 @@ function checkTimeOverlap(container, newStartTime, newEndTime, currentForm) {
         }
     }
     return false; // Tidak ada overlap
-}
-
+    }
+    
     // Update fungsi addActivity
-window.addActivity = function(dateString, initialData = {}) {
+    window.addActivity = function(dateString, initialData = {}) {
     const container = document.querySelector(`.activity-container-${dateString}`);
     const newIndex = formCount;
-
+    
     // Cek jumlah aktivitas yang ada di hari yang sama
     const existingActivities = container.querySelectorAll('.activity-form').length;
-
+    
     // Template untuk tombol hapus yang akan ditampilkan kondisional
     const deleteButtonHTML = existingActivities > 0 ? `
         <button type="button" class="delete-activity bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center">
@@ -245,30 +260,30 @@ window.addActivity = function(dateString, initialData = {}) {
             </svg>
         </button>
     ` : '';
-
+    
     const newFormHTML = `
     <div class="activity-form border-b pb-4 mb-4">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
             <div class="md:col-span-2">
                 <input type="hidden" name="aktivitas_harian-${newIndex}-tanggal" value="${dateString}">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Jam Mulai</label>
-                <input type="time" name="aktivitas_harian-${newIndex}-jam_mulai" value="${initialData.jam_mulai || ''}" class="border rounded p-2 w-full" required>
+                <label for="id_aktivitas_harian-${newIndex}-jam_mulai" class="block text-sm font-medium text-gray-700 mb-2">Jam Mulai</label>
+                <input type="time" id="id_aktivitas_harian-${newIndex}-jam_mulai" name="aktivitas_harian-${newIndex}-jam_mulai" value="${initialData.jam_mulai || ''}" class="border rounded p-2 w-full" required>
                 <div class="error-message text-red-600 text-sm mt-1"></div>
             </div>
             <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Jam Selesai</label>
-                <input type="time" name="aktivitas_harian-${newIndex}-jam_selesai" value="${initialData.jam_selesai || ''}" class="border rounded p-2 w-full" required>
+                <label for="id_aktivitas_harian-${newIndex}-jam_selesai" class="block text-sm font-medium text-gray-700 mb-2">Jam Selesai</label>
+                <input type="time" id="id_aktivitas_harian-${newIndex}-jam_selesai" name="aktivitas_harian-${newIndex}-jam_selesai" value="${initialData.jam_selesai || ''}" class="border rounded p-2 w-full" required>
                 <div class="error-message text-red-600 text-sm mt-1"></div>
             </div>
             <div class="md:col-span-7">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Deskripsi</label>
-                <textarea name="aktivitas_harian-${newIndex}-deskripsi" class="border rounded p-2 w-full" rows="2" required>${initialData.deskripsi || ''}</textarea>
+                <label for="id_aktivitas_harian-${newIndex}-deskripsi" class="block text-sm font-medium text-gray-700 mb-2">Deskripsi</label>
+                <textarea id="id_aktivitas_harian-${newIndex}-deskripsi" name="aktivitas_harian-${newIndex}-deskripsi" class="border rounded p-2 w-full" rows="2" required>${initialData.deskripsi || ''}</textarea>
                 <div class="error-message text-red-600 text-sm mt-1"></div>
             </div>
             <div class="md:col-span-1 flex items-start pt-8">
                 ${deleteButtonHTML}
                 <div class="hidden">
-                    <input type="checkbox" name="aktivitas_harian-${newIndex}-DELETE">
+                    <input type="checkbox" id="id_aktivitas_harian-${newIndex}-DELETE" name="aktivitas_harian-${newIndex}-DELETE">
                 </div>
             </div>
         </div>
@@ -277,14 +292,14 @@ window.addActivity = function(dateString, initialData = {}) {
     container.insertAdjacentHTML('beforeend', newFormHTML);
     formCount++;
     managementForm.value = formCount;
-
+    
     // Setelah menambahkan form baru, update tombol hapus di semua form
     updateDeleteButtons(container);
-
+    
     const newForm = container.lastElementChild;
     const jamMulaiInput = newForm.querySelector(`[name="aktivitas_harian-${newIndex}-jam_mulai"]`);
     const jamSelesaiInput = newForm.querySelector(`[name="aktivitas_harian-${newIndex}-jam_selesai"]`);
-
+    
     const validateTime = () => {
         if (jamMulaiInput.value && jamSelesaiInput.value) {
             // Reset error state
@@ -311,13 +326,13 @@ window.addActivity = function(dateString, initialData = {}) {
         }
         return true;
     };
-
+    
     jamMulaiInput.addEventListener('change', validateTime);
     jamSelesaiInput.addEventListener('change', validateTime);
-};
-
-// Tambahkan fungsi untuk update tombol hapus
-function updateDeleteButtons(container) {
+    };
+    
+    // Tambahkan fungsi untuk update tombol hapus
+    function updateDeleteButtons(container) {
     const forms = container.querySelectorAll('.activity-form');
     const shouldShowDeleteButton = forms.length > 1;
     
@@ -327,8 +342,8 @@ function updateDeleteButtons(container) {
             deleteButton.style.display = shouldShowDeleteButton ? 'flex' : 'none';
         }
     });
-}
-
+    }
+    
     startDateInput.addEventListener('change', () => {
         updateDateConstraints();
         updateForms();
@@ -338,58 +353,59 @@ function updateDeleteButtons(container) {
         updateDateConstraints();
         updateForms();
     });
-
-    // Update form submission untuk validasi final
-    const logForm = document.getElementById('logForm');
-    logForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        // Validasi semua aktivitas sebelum submit
+    
+    // Fungsi untuk validasi aktivitas
+    function validateActivities() {
         let hasError = false;
         document.querySelectorAll('[class^="activity-container-"]').forEach(container => {
-            // Hanya validasi form yang visible
             const activities = container.querySelectorAll('.activity-form:not([style*="display: none"])');
-            
             activities.forEach(form => {
-                const startInput = form.querySelector('input[type="time"]:not([name$="-jam_selesai"])');
-                const endInput = form.querySelector('input[type="time"][name$="-jam_selesai"]');
-                
-                if (startInput && endInput && startInput.value && endInput.value) {
-                    // Reset error state
-                    startInput.classList.remove('border-red-500');
-                    startInput.nextElementSibling.textContent = "";
-                    
-                    if (startInput.value >= endInput.value) {
-                        hasError = true;
-                        startInput.classList.add('border-red-500');
-                        startInput.nextElementSibling.textContent = "Jam mulai harus sebelum jam selesai";
-                    } else if (checkTimeOverlap(container, startInput.value, endInput.value, form)) {
-                        hasError = true;
-                        startInput.classList.add('border-red-500');
-                        startInput.nextElementSibling.textContent = "Waktu aktivitas beririsan dengan aktivitas lain di hari yang sama";
-                    }
+                if (validateActivityForm(form, container)) {
+                    hasError = true;
                 }
             });
         });
-
-        if (hasError) {
-            const firstError = document.querySelector('.border-red-500');
-            if (firstError) {
-                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            return;
+        return hasError;
+    }
+    
+    // Fungsi untuk validasi satu form aktivitas
+    function validateActivityForm(form, container) {
+        const startInput = form.querySelector('input[type="time"]:not([name$="-jam_selesai"])');
+        const endInput = form.querySelector('input[type="time"][name$="-jam_selesai"]');
+        
+        if (!startInput || !endInput || !startInput.value || !endInput.value) {
+            return false;
         }
-
-        // Add confirmation dialog before submitting
-        if (!confirm('Apakah Anda yakin untuk menyimpan Log Mingguan ini?')) {
-            return;
+    
+        // Reset error state
+        startInput.classList.remove('border-red-500');
+        startInput.nextElementSibling.textContent = "";
+        
+        if (startInput.value >= endInput.value) {
+            showError(startInput, "Jam mulai harus sebelum jam selesai");
+            return true;
         }
-
-        // Lanjutkan dengan submit form jika tidak ada error dan user mengkonfirmasi
+        
+        if (checkTimeOverlap(container, startInput.value, endInput.value, form)) {
+            showError(startInput, "Waktu aktivitas beririsan dengan aktivitas lain di hari yang sama");
+            return true;
+        }
+        
+        return false;
+    }
+    
+    // Fungsi untuk menampilkan error
+    function showError(element, message) {
+        element.classList.add('border-red-500');
+        element.nextElementSibling.textContent = message;
+    }
+    
+    // Fungsi untuk menangani response dari server
+    async function handleFormSubmission(form, csrftoken) {
         try {
             const response = await fetch(window.location.href, {
                 method: 'POST',
-                body: new FormData(this),
+                body: new FormData(form),
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRFToken': csrftoken
@@ -400,45 +416,57 @@ function updateDeleteButtons(container) {
             if (data.success) {
                 window.location.href = data.redirect_url;
             } else {
-                // Tampilkan error umum di bagian atas form
-                if (data.formset_errors && data.formset_errors.length > 0) {
-                    const errorContainer = document.createElement('div');
-                    errorContainer.className = 'mb-4 p-4 bg-red-50 text-red-700 rounded-lg';
-                    errorContainer.innerHTML = '<p class="font-medium">Terjadi kesalahan pada aktivitas harian</p>';
-                    const existingError = document.querySelector('.mb-4.bg-red-50');
-                    if (existingError) {
-                        existingError.remove();
-                    }
-                    logForm.parentNode.insertBefore(errorContainer, logForm);
-                }
-
-                // Tampilkan error spesifik untuk setiap field yang bermasalah
-                if (data.formset_errors) {
-                    data.formset_errors.forEach((errors, index) => {
-                        Object.entries(errors).forEach(([field, fieldErrors]) => {
-                            const fieldElement = document.querySelector(`[name="aktivitas_harian-${index}-${field}"]`);
-                            if (fieldElement) {
-                                fieldElement.classList.add('border-red-500');
-                                const errorDiv = fieldElement.parentElement.querySelector('.error-message');
-                                if (errorDiv) {
-                                    errorDiv.textContent = fieldErrors.join(', ');
-                                }
-                            }
-                        });
-                    });
-                }
-
-                // Scroll ke error pertama
-                const firstError = document.querySelector('.border-red-500, .bg-red-50');
-                if (firstError) {
-                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
+                handleFormErrors(data, form);
             }
         } catch (error) {
             console.error('Error submitting form:', error);
         }
+    }
+    
+    // Fungsi untuk menangani error form
+    function handleFormErrors(data, form) {
+        if (data.formset_errors && data.formset_errors.length > 0) {
+            showFormsetError(form);
+        }
+    
+        if (data.formset_errors) {
+            showFieldErrors(data.formset_errors);
+        }
+    
+        scrollToFirstError();
+    }
+    
+    // Event listener untuk submit form
+    logForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const hasError = validateActivities();
+        if (hasError) {
+            scrollToFirstError();
+            return;
+        }
+
+        // Add confirmation dialog before submitting
+        if (!confirm('Apakah Anda yakin untuk menyimpan Log Mingguan ini?')) {
+            return;
+        }
+
+        // Update form indices before submission
+        updateFormCount();
+
+        // Lanjutkan dengan submit form jika tidak ada error
+        await handleFormSubmission(this, csrftoken);
     });
-});
-</script>
+    
+    // Fungsi helper untuk scroll ke error pertama
+    function scrollToFirstError() {
+        const firstError = document.querySelector('.border-red-500, .bg-red-50');
+        if (firstError) {
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+    });
+    
+    </script>
 </body>
 </html>

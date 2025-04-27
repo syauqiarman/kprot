@@ -8,7 +8,7 @@
 </head>
 <body class="bg-gray-100 p-5">
     <div class="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-md">
-        
+    
         <!-- Back Button -->
         <div class="mb-6">
             <a href="javascript:history.back()" 
@@ -19,7 +19,7 @@
                 Kembali
             </a>
         </div>
-
+        
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800">
@@ -32,7 +32,7 @@
             </a>
             {% endif %}
         </div>
-
+    
         {% if messages %}
         <div class="mb-4 space-y-2">
             {% for message in messages %}
@@ -42,7 +42,7 @@
             {% endfor %}
         </div>
         {% endif %}
-
+    
         <!-- Informasi Pribadi -->
         <div class="mb-6 bg-gray-50 p-4 rounded-lg">
             <div class="grid grid-cols-2 gap-4 text-sm">
@@ -68,7 +68,7 @@
                 </div>
             </div>
         </div>
-
+    
         <!-- Ringkasan Log -->
         <div class="mb-6 bg-blue-50 p-4 rounded-lg">
             <div class="flex items-center justify-between">
@@ -78,14 +78,21 @@
                 </span>
             </div>
         </div>
-
+    
         <!-- Daftar Log -->
         <div class="space-y-4">
             {% for log in logs %}
             <div class="border rounded-lg overflow-hidden">
-                <!-- Header Log - Made entirely clickable -->
-                <div onclick="toggleCollapse('log-{{ forloop.counter }}')" 
-                     class="p-4 bg-gray-50 flex justify-between items-center cursor-pointer hover:bg-gray-100">
+                <!-- Header Log - Made accessible -->
+                <button 
+                    onclick="toggleCollapse('log-{{ forloop.counter }}')" 
+                    onKeyDown="handleKeyDown(event, 'log-{{ forloop.counter }}')"
+                    aria-expanded="false"
+                    aria-controls="log-{{ forloop.counter }}"
+                    tabindex="0"
+                    class="w-full p-4 bg-gray-50 flex justify-between items-center cursor-pointer hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    role="button"
+                >
                     <div>
                         <span class="font-medium">
                             {{ log.tanggal_mulai|date:"d M" }} - {{ log.tanggal_selesai|date:"d M Y" }}
@@ -94,13 +101,18 @@
                             ({{ log.get_status_persetujuan_display }})
                         </span>
                     </div>
-                    <div class="text-gray-500 hover:text-gray-700">
+                    <span class="text-gray-500 hover:text-gray-700 transition-transform duration-200" aria-hidden="true">
                         ▼
-                    </div>
-                </div>
-
+                    </span>
+                </button>
+    
                 <!-- Detail Log -->
-                <div id="log-{{ forloop.counter }}" class="hidden">
+                <div 
+                    id="log-{{ forloop.counter }}" 
+                    class="hidden"
+                    role="region" 
+                    aria-labelledby="log-heading-{{ forloop.counter }}"
+                >
                     <!-- Actions Section -->
                     {% if user.mahasiswa %}
                     <div class="border-b px-4 py-2 bg-gray-50">
@@ -113,7 +125,7 @@
                         </form>
                     </div>
                     {% endif %}
-
+    
                     <!-- Log Content -->
                     <div class="p-4 border-t">
                         <div class="mb-4">
@@ -168,20 +180,25 @@
             {% endfor %}
         </div>
     </div>
-
+    
     <script>
         function toggleCollapse(id) {
             const element = document.getElementById(id);
-            const header = element.previousElementSibling;
-            const arrow = header.querySelector('div:last-child');
+            const button = element.previousElementSibling;
+            const arrow = button.querySelector('span:last-child');
+            const isExpanded = !element.classList.contains('hidden');
             
             element.classList.toggle('hidden');
+            button.setAttribute('aria-expanded', !isExpanded);
             
             // Rotate arrow when collapsed/expanded
-            if (element.classList.contains('hidden')) {
-                arrow.style.transform = 'rotate(0deg)';
-            } else {
-                arrow.style.transform = 'rotate(180deg)';
+            arrow.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+    
+        function handleKeyDown(event, id) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleCollapse(id);
             }
         }
     </script>
