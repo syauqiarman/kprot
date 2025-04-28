@@ -1,6 +1,6 @@
 from django import forms
 from database.models import LogMingguan, AktivitasHarian, PendaftaranKP, PendaftaranMBKM
-from django.forms import ValidationError, inlineformset_factory, BaseInlineFormSet
+from django.forms import BaseInlineFormSet, ValidationError, inlineformset_factory
 
 class LogMingguanForm(forms.ModelForm):
     nama = forms.CharField(disabled=True, required=False)
@@ -39,49 +39,57 @@ class LogMingguanForm(forms.ModelForm):
         program = self.program
 
         if tanggal_mulai and tanggal_selesai:
+            self._validate_date_range(tanggal_mulai, tanggal_selesai)
+            self._validate_program_dates(tanggal_mulai, tanggal_selesai, program)
+            self._validate_program_status(program)
+            self._validate_overlap(tanggal_mulai, tanggal_selesai, program)
 
-            delta = tanggal_selesai - tanggal_mulai
-            if delta.days > 6:  # 7 hari inklusif
-                self.add_error(
-                    'tanggal_selesai',
-                    "Maksimal rentang log mingguan adalah 7 hari"
-                )
-
-            if tanggal_mulai > tanggal_selesai:
-                self.add_error('tanggal_mulai', "Tanggal mulai tidak boleh setelah tanggal selesai")
-                self.add_error('tanggal_selesai', "Tanggal selesai tidak boleh sebelum tanggal mulai")
-            
-            if not (program.tanggal_mulai <= tanggal_mulai <= program.tanggal_selesai):
-                self.add_error('tanggal_mulai', "Tanggal mulai log di luar periode program")
-            
-            if not (program.tanggal_mulai <= tanggal_selesai <= program.tanggal_selesai):
-                self.add_error('tanggal_selesai', "Tanggal selesai log di luar periode program")
-
-            if program.status_pendaftaran != "Terdaftar":
-                self.add_error(None, "Program harus dalam status Terdaftar untuk membuat log")
-            
-            # Tentukan filter berdasarkan tipe program
-            if isinstance(program, PendaftaranKP):
-                field_filter = {'pendaftaran_kp': program}
-            elif isinstance(program, PendaftaranMBKM):
-                field_filter = {'pendaftaran_mbkm': program}
-            else:
-                raise ValidationError("Jenis program tidak valid")
-
-            # Validasi overlap
-            existing_logs = LogMingguan.objects.filter(
-                **field_filter,
-                tanggal_mulai__lte=tanggal_selesai,
-                tanggal_selesai__gte=tanggal_mulai
-            )
-            
-            if self.instance.pk:
-                existing_logs = existing_logs.exclude(pk=self.instance.pk)
-                
-            if existing_logs.exists():
-                self.add_error(None, "Periode log ini tumpang tindih dengan log yang sudah ada")
-                
         return cleaned_data
+
+    def _validate_date_range(self, tanggal_mulai, tanggal_selesai):
+        delta = tanggal_selesai - tanggal_mulai
+        if delta.days > 6:  # 7 hari inklusif
+            self.add_error(
+                'tanggal_selesai',
+                "Maksimal rentang log mingguan adalah 7 hari"
+            )
+
+        if tanggal_mulai > tanggal_selesai:
+            self.add_error('tanggal_mulai', "Tanggal mulai tidak boleh setelah tanggal selesai")
+            self.add_error('tanggal_selesai', "Tanggal selesai tidak boleh sebelum tanggal mulai")
+
+    def _validate_program_dates(self, tanggal_mulai, tanggal_selesai, program):
+        if not (program.tanggal_mulai <= tanggal_mulai <= program.tanggal_selesai):
+            self.add_error('tanggal_mulai', "Tanggal mulai log di luar periode program")
+
+        if not (program.tanggal_mulai <= tanggal_selesai <= program.tanggal_selesai):
+            self.add_error('tanggal_selesai', "Tanggal selesai log di luar periode program")
+
+    def _validate_program_status(self, program):
+        if program.status_pendaftaran != "Terdaftar":
+            self.add_error(None, "Program harus dalam status Terdaftar untuk membuat log")
+
+    def _validate_overlap(self, tanggal_mulai, tanggal_selesai, program):
+        # Tentukan filter berdasarkan tipe program
+        if isinstance(program, PendaftaranKP):
+            field_filter = {'pendaftaran_kp': program}
+        elif isinstance(program, PendaftaranMBKM):
+            field_filter = {'pendaftaran_mbkm': program}
+        else:
+            raise ValidationError("Jenis program tidak valid")
+
+        # Validasi overlap
+        existing_logs = LogMingguan.objects.filter(
+            **field_filter,
+            tanggal_mulai__lte=tanggal_selesai,
+            tanggal_selesai__gte=tanggal_mulai
+        )
+
+        if self.instance.pk:
+            existing_logs = existing_logs.exclude(pk=self.instance.pk)
+
+        if existing_logs.exists():
+            self.add_error(None, "Periode log ini tumpang tindih dengan log yang sudah ada")
     
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -103,41 +111,41 @@ class BaseAktivitasHarianFormSet(BaseInlineFormSet):
         kwargs['log_mingguan'] = self.log_mingguan  # Pass ke setiap form
         return super()._construct_form(i, **kwargs)
 
+COMMON_INPUT_CSS_CLASS = 'border rounded p-2 w-full'
+
 class AktivitasHarianForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.log_mingguan = kwargs.pop('log_mingguan', None)  # Terima log_mingguan
         super().__init__(*args, **kwargs)
-        # Nonaktifkan validasi tanggal jika sudah di-handle di log_mingguan
-        self.fields['tanggal'].required = False  # Karena di-set via JavaScript
-    
+
     class Meta:
         model = AktivitasHarian
         fields = ['tanggal', 'jam_mulai', 'jam_selesai', 'deskripsi']
         widgets = {
             'tanggal': forms.DateInput(attrs={
                 'type': 'date',
-                'class': 'border rounded p-2 w-full'
+                'class': COMMON_INPUT_CSS_CLASS
             }),
             'jam_mulai': forms.TimeInput(attrs={
                 'type': 'time',
-                'class': 'border rounded p-2 w-full', 
+                'class': COMMON_INPUT_CSS_CLASS, 
                 'step': '60'
             }),
             'jam_selesai': forms.TimeInput(attrs={
                 'type': 'time',
-                'class': 'border rounded p-2 w-full', 
+                'class': COMMON_INPUT_CSS_CLASS, 
                 'step': '60'
             }),
             'deskripsi': forms.Textarea(attrs={
                 'rows': 2,
-                'class': 'border rounded p-2 w-full'
+                'class': COMMON_INPUT_CSS_CLASS
             }),
         }
     
     def clean(self):
         cleaned_data = super().clean()
         tanggal = cleaned_data.get('tanggal')
-        log = self.log_mingguan  # Gunakan log_mingguan dari formset
+        log = self.log_mingguan
         
         if log.tanggal_mulai is not None and log.tanggal_selesai is not None:
             if not (log.tanggal_mulai <= tanggal <= log.tanggal_selesai):
@@ -152,8 +160,8 @@ AktivitasHarianFormSet = inlineformset_factory(
     LogMingguan,
     AktivitasHarian,
     form=AktivitasHarianForm,
-    extra=0,
-    can_delete=False,
+    extra=7,
+    can_delete=True,  # Ubah menjadi True
     validate_min=True,
-    formset=BaseAktivitasHarianFormSet  # Gunakan formset custom
+    formset=BaseAktivitasHarianFormSet
 )

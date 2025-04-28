@@ -5,8 +5,10 @@ from django.contrib import messages
 from django.urls import reverse
 from database.models import AktivitasHarian, LogMingguan, PendaftaranKP, PendaftaranMBKM
 from django.db.models import Sum
-from LogMahasiswa.forms import AktivitasHarianForm, LogMingguanForm, AktivitasHarianFormSet
+from LogMahasiswa.forms import LogMingguanForm, AktivitasHarianFormSet
 from django.db.models import Prefetch
+
+LOG_DETAIL_REDIRECT = 'LogMahasiswa:log_detail'
 
 def create_log(request):
     """View utama untuk membuat log aktivitas."""
@@ -105,11 +107,11 @@ def _save_valid_formset(request, formset, log):
     if _is_ajax_request(request):
         return JsonResponse({
             'success': True,
-            'redirect_url': reverse('LogMahasiswa:log_detail')
+            'redirect_url': reverse(LOG_DETAIL_REDIRECT)
         })
     
     messages.success(request, "Log mingguan berhasil disimpan!")
-    return redirect('LogMahasiswa:log_detail')
+    return redirect(LOG_DETAIL_REDIRECT)
 
 def _handle_invalid_formset(request, formset, log):
     """Menangani formset yang tidak valid."""
@@ -200,22 +202,13 @@ def log_detail(request):
     })
 
 def delete_log(request, log_id):
-    """Menghapus log mingguan."""
-    if request.method == 'POST':
-        log = get_object_or_404(LogMingguan, id=log_id)
-        
-        # Pastikan log milik user yang sedang login
-        if (log.pendaftaran_kp and log.pendaftaran_kp.mahasiswa.user != request.user) or \
-           (log.pendaftaran_mbkm and log.pendaftaran_mbkm.mahasiswa.user != request.user):
-            messages.error(request, "Anda tidak memiliki izin untuk menghapus log ini.")
-            return redirect('LogMahasiswa:log_detail')
-        
-        # Cek status persetujuan
-        if log.status_persetujuan == 'disetujui':
-            messages.error(request, "Log yang sudah disetujui tidak dapat dihapus.")
-            return redirect('LogMahasiswa:log_detail')
-        
-        log.delete()
-        messages.success(request, "Log berhasil dihapus.")
-        
-    return redirect('LogMahasiswa:log_detail')
+    log = get_object_or_404(LogMingguan, id=log_id)
+    # Pastikan log milik user yang sedang login
+    if (log.pendaftaran_kp and log.pendaftaran_kp.mahasiswa.user != request.user) or \
+       (log.pendaftaran_mbkm and log.pendaftaran_mbkm.mahasiswa.user != request.user):
+        messages.error(request, "Anda tidak memiliki izin untuk menghapus log ini.")
+        return redirect(LOG_DETAIL_REDIRECT)
+
+    log.delete()
+    messages.success(request, "Log berhasil dihapus.")
+    return redirect(LOG_DETAIL_REDIRECT)
