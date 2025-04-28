@@ -105,6 +105,11 @@ class Mahasiswa(OneRoleUser):
     pa = models.ForeignKey(PembimbingAkademik, on_delete=models.CASCADE, blank=True, null=True)
     prodi = models.CharField(max_length=20, choices=PRODI_CHOICES, default="Ilmu Komputer")  
 
+    def update_from_cas(self, cas_data):
+        self.npm = cas_data.get('npm', '')
+        self.faculty = cas_data.get('organization', {}).get('faculty', '')
+        self.save()
+        
 class Penyelia(OneRoleUser):
     email = models.EmailField(unique=True, validators=[v.validate_email_penyelia])
     perusahaan = models.CharField(max_length=255)

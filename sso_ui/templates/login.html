@@ -1,0 +1,25 @@
+<!-- login.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+</head>
+<body>
+    <h1>Singawas Login</h1>
+    <a href="{% url 'cas_login' %}">Login dengan SSO UI</a>
+</body>
+</html>
+
+<!-- dashboard.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+    <h1>Welcome, {{ request.user.nama }}</h1>
+    <p>NPM: {{ request.user.npm }}</p>
+    <p>Fakultas: {{ request.user.faculty }}</p>
+    <a href="{% url 'logout' %}">Logout</a>
+</body>
+</html>

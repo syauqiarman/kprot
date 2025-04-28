@@ -27,4 +27,5 @@ urlpatterns = [
     path('', include('dashboard.urls')),
     path('testing/', include('testing.urls')),
     path('log/', include('LogMahasiswa.urls')),
+    path('sso/', include('sso_ui.urls')),
 ]

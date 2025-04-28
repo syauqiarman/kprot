@@ -10,11 +10,15 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+from datetime import timedelta
+import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -46,7 +50,30 @@ INSTALLED_APPS = [
     'dashboard',
     'testing',
     'LogMahasiswa',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'sso_ui',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(seconds=int(os.getenv('ACCESS_TOKEN_EXP_TIME'))),
+    'REFRESH_TOKEN_LIFETIME': timedelta(seconds=int(os.getenv('REFRESH_TOKEN_EXP_TIME'))),
+    'SIGNING_KEY': os.getenv('ACCESS_TOKEN_SECRET_KEY'),
+    'ALGORITHM': 'HS256',
+    'TOKEN_OBTAIN_SERIALIZER': 'sso_auth.serializers.CustomTokenObtainPairSerializer',
+}
+
+CAS_CONFIG = {
+    'CAS_URL': os.getenv('CAS_URL'),
+    'SERVICE_URL': os.getenv('SERVICE_URL'),
+    'ORIGIN_URL': os.getenv('ORIGIN_URL'),
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -56,6 +83,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'sso_ui.middleware.JWTAuthenticationMiddleware',
 ]
 
 ROOT_URLCONF = 'kprot.urls'
