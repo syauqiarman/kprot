@@ -5,5 +5,6 @@ app_name = 'testapp'
 
 urlpatterns = [
     path('listsemester/', list_semester, name='list_semester'),
+    path('listmahasiswa/', list_mahasiswa, name='list_mahasiswa_no_id'),
     path('listsemester/<int:semester_id>/', list_mahasiswa, name='list_mahasiswa'),
 ]

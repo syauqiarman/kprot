@@ -1,0 +1,130 @@
+<!-- {% extends "base.html" %} -->
+
+{% block content %}
+        <div class="bg-gray-100 p-5">
+            <div class="max-w-6xl mx-auto">
+        
+                <!-- Nama - NPM as Title -->
+                <div class="text-3xl font-semibold text-gray-700 mb-4">
+                    Detil Pendaftaran {{ nama_mahasiswa }} - {{ npm_mahasiswa }} 
+                </div>
+        
+                <!-- Dropdown for Semester Selection (Always Visible) -->
+                <div class="bg-white p-3 rounded-lg shadow border border-gray-200 mb-6">
+                    <select class="w-full p-3 border rounded-lg" onchange="handleSemesterChange(this.value)">
+                        <option selected>{{ semester }} - KP</option>
+                        {% for s, tipe, _, _, s_id in semua_pendaftaran %}
+                            <option value="{{ s_id }}|{{ tipe }}">{{ s }} - {{ tipe }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+        
+                <div class="flex justify-between mb-6">
+                    <!-- Biodata Section -->
+                    <div class="bg-white p-6 rounded-lg shadow-lg w-2/3 mr-4 border border-gray-200">
+                        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Biodata</h2>
+                        <div class="text-gray-600">
+                            <p><strong>Semester: </strong>{{ jumlah_semester }}</p>
+                            <p><strong>SKS Lulus: </strong>{{ sks_lulus }}</p>
+                        </div>
+                    </div>
+        
+                    <!-- Statu Pendaftaran (Smaller Section) -->
+                    <div class="bg-white p-6 rounded-lg shadow-lg w-1/3 ml-4 border border-gray-200">
+                        <h2 class="text-2xl font-semibold mb-4 text-gray-700">Status Pendaftaran</h2>
+                        <p class="text-gray-600 mb-4">{{ status_pendaftaran }}</p>
+                    </div>
+                </div>
+        
+                <!-- Additional Details (Collapsible Sections) -->
+                <div class="bg-white p-6 rounded-lg shadow mb-6 border border-gray-200">
+                    <button class="text-xl font-semibold text-gray-700 w-full text-left flex justify-between items-center cursor-pointer focus:outline-none" 
+                        onclick="toggleSection('program')" 
+                        aria-expanded="true" 
+                        id="program-button">
+                        Detil Program
+                        <span class="ml-2">▼</span>
+                    </button>
+                    <div id="program" class="mt-3 text-gray-600">
+                        <p><strong>Perusahaan:</strong> {{ perusahaan|default:"N/A" }}</p>
+                        <p><strong>Role:</strong> {{ role|default:"N/A" }}</p>
+                        <p><strong>Nama Penyelia:</strong> {{ penyelia|default:"N/A" }}</p>
+                        <p><strong>Total Jam Kerja:</strong> {% if total_jam_kerja is not None %}{{ total_jam_kerja }} jam{% else %}N/A{% endif %}</p>
+                        <p><strong>Tanggal Mulai:</strong> {{ tanggal_mulai|default:"N/A" }}</p>
+                        <p><strong>Tanggal Selesai:</strong> {{ tanggal_selesai|default:"N/A" }}</p>
+                    </div>
+                </div>        
+                
+                <div class="bg-white p-6 rounded-lg shadow mb-6 border border-gray-200">
+                    <button class="text-xl font-semibold text-gray-700 w-full text-left flex justify-between items-center focus:outline-none" 
+                        onclick="toggleSection('nilai')" 
+                        aria-expanded="false" 
+                        id="nilai-button">
+                        Nilai Penyelia
+                        <span class="ml-2">▼</span>
+                    </button>
+                    <div id="nilai" class="hidden mt-3">
+                        <button class="mt-3 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition">Lihat Detil</button>
+                    </div>
+                </div>
+        
+                <div class="bg-white p-6 rounded-lg shadow mb-6 border border-gray-200">
+                    <button class="text-xl font-semibold text-gray-700 w-full text-left flex justify-between items-center cursor-pointer focus:outline-none" 
+                        onclick="toggleSection('log')" 
+                        aria-expanded="false" 
+                        id="log-button">
+                        Log Mingguan
+                        <span class="ml-2">▼</span>
+                    </button>
+                    <div id="log" class="hidden mt-3">
+                        <button class="mt-3 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition">Detil Log Mingguan</button>
+                    </div>
+                </div>
+                
+        
+                <div class="bg-white p-6 rounded-lg shadow mb-6 border border-gray-200">
+                    <button class="text-xl font-semibold text-gray-700 w-full text-left flex justify-between items-center cursor-pointer focus:outline-none" 
+                        onclick="toggleSection('laporan')" 
+                        aria-expanded="false" 
+                        id="laporan-button">
+                        Laporan Kegiatan
+                        <span class="ml-2">▼</span>
+                    </button>
+                    <div id="laporan" class="hidden mt-3">
+                        <button class="mt-3 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition">Detil Laporan Kegiatan</button>
+                    </div>
+                </div>
+        
+                <div class="bg-white p-6 rounded-lg shadow mb-6 border border-gray-200">
+                    <button class="text-xl font-semibold text-gray-700 w-full text-left flex justify-between items-center cursor-pointer focus:outline-none" 
+                        onclick="toggleSection('nilai_akhir')" 
+                        aria-expanded="false" 
+                        id="nilai_akhir-button">
+                        Nilai Akhir KP
+                        <span class="ml-2">▼</span>
+                    </button>
+                    <div id="nilai_akhir" class="hidden mt-3">
+                        <button class="mt-3 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition">Detil Nilai Akhir</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+        function toggleSection(id) {
+            const section = document.getElementById(id);
+            const button = document.getElementById(id + "-button");
+            const isHidden = section.classList.toggle("hidden");
+            
+            button.setAttribute("aria-expanded", !isHidden);
+        }
+        function handleSemesterChange(selectedValue) {
+            let [semesterId, tipe] = selectedValue.split('|'); // Split value into ID and type
+            let mahasiswaId = "{{ id_mahasiswa|escapejs }}"; // Ensure proper escaping for JavaScript
+            let url = tipe === 'KP' 
+                ? `/detil/pendaftaran/kp/${mahasiswaId}/${encodeURIComponent(semesterId)}` 
+                : `/detil/pendaftaran/mbkm/${mahasiswaId}/${encodeURIComponent(semesterId)}`;
+            window.location.href = url;
+        }
+        </script>
+{% endblock %}

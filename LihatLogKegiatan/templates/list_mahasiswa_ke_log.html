@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Log Kegiatan Mahasiswa - Semester {{ semester.nama }}</title>
+</head>
+<body class="bg-gray-100 p-5">
+    <div class="grid grid-cols-3 gap-4">
+        <!-- Clock -->
+        <div class="bg-white p-4 rounded-lg shadow">
+            <h2 class="text-xl font-bold">Clock</h2>
+            <p class="mt-2 text-lg font-semibold">Day <span id="clock">00.00.00</span></p>
+        </div>
+
+        <!-- Table of Mahasiswa Logs -->
+        <div class="col-span-2 bg-white p-6 rounded-lg shadow">
+            <h1 class="text-2xl font-bold mb-4">Log Kegiatan Mahasiswa - Semester {{ semester.nama }}</h1>
+
+            {% if hasil_log %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white border border-gray-300 text-sm">
+                        <thead class="bg-gray-200 text-left">
+                            <tr>
+                                <th class="p-2 border">Nama</th>
+                                <th class="p-2 border">NPM</th>
+                                <th class="p-2 border">Program</th>
+                                <th class="p-2 border">Tanggal Mulai</th>
+                                <th class="p-2 border">Tanggal Selesai</th>
+                                <th class="p-2 border">Status Log</th>
+                                <th class="p-2 border">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in hasil_log %}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="p-2 border">{{ item.nama }}</td>
+                                    <td class="p-2 border">{{ item.npm }}</td>
+                                    <td class="p-2 border">{{ item.program|default:"-" }}</td>
+                                    <td class="p-2 border">
+                                        {% if item.tanggal_mulai %}
+                                            {{ item.tanggal_mulai|date:"d M Y" }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="p-2 border">
+                                        {% if item.tanggal_selesai %}
+                                            {{ item.tanggal_selesai|date:"d M Y" }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td class="p-2 border">{{ item.status }}</td>
+                                    <td class="p-2 border text-center">
+                                        <a href="{% url 'LihatLogKegiatan:mahasiswa_logs' item.npm %}"
+                                           class="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded text-sm">
+                                            Lihat Log
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-gray-500 italic">Tidak ada mahasiswa terdaftar di semester ini.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            let now = new Date();
+            let timeString = now.getHours().toString().padStart(2, '0') + ":" +
+                            now.getMinutes().toString().padStart(2, '0') + ":" +
+                            now.getSeconds().toString().padStart(2, '0');
+            document.getElementById("clock").innerText = timeString;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
+{% endblock %}

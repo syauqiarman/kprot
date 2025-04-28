@@ -1,0 +1,40 @@
+{% load static tailwind_tags %}
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SI-KP{% endblock %}</title>
+
+    <!-- Load Tailwind CSS -->
+    {% tailwind_css %}
+	<link href="{% static 'css/dist/styles.css' %}" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-900">
+
+    <!-- Navbar -->
+    <nav class="bg-blue-600 text-white p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="/" class="text-lg font-bold">SI-KP</a>
+            <ul class="flex space-x-4">
+                <li><a href="{{ dashboard_url|default:'#' }}" class="hover:underline">Dashboard</a></li>
+                <li><a href="{{ pendaftaran_url|default:'#' }}" class="hover:underline">Pendaftaran</a></li>
+                <li><a href="{% url 'temp_logout' %}" class="hover:underline">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto p-6">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white text-center p-4 mt-10">
+        &copy; 2025 SI-KP. All rights reserved.
+    </footer>
+
+</body>
+</html>
